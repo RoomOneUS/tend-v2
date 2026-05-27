@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tend — POC Interactive Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=49" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">T</span>
+      <span>Tend POC</span>
+      <span class="tag">interactive mockup</span>
+    </div>
+    <div class="controls">
+      <button data-demo="reset">Reset demo</button>
+      <button data-demo="sign-in-all" style="background:#0f766e;color:#fff;font-weight:700">Sign in all (Shari + Chen)</button>
+      <button data-demo="sign-out-all">Sign out all</button>
+      <button data-demo="trigger-journal">Trigger journal escalation</button>
+      <button data-demo="trigger-journal-soft">Trigger journal soft-flag</button>
+      <button data-demo="trigger-dysregulation">Trigger dysregulation</button>
+      <button data-demo="trigger-dysregulation-nofallback">Trigger dysregulation (no plan match)</button>
+      <button data-demo="trigger-coach-flag">Trigger Coach AI flag</button>
+      <button data-demo="trigger-message">Patient → Clinician message</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="device-col">
+      <h3>Clinician Mobile</h3>
+      <div class="phone" id="surface-clinician-mobile">
+        <div class="phone-statusbar"><span>9:41</span><span class="statusbar-icons"><i data-lucide="signal-high"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+        <div class="phone-viewport" id="cm-root"></div>
+      </div>
+    </section>
+
+    <section class="device-col web-col">
+      <h3>Clinician Web</h3>
+      <div class="web-frame" id="surface-clinician-web">
+        <div class="browser-chrome">
+          <div class="browser-tabs-row">
+            <div class="traffic-lights"><span class="tl-red"></span><span class="tl-yellow"></span><span class="tl-green"></span></div>
+            <div class="browser-tab active">
+              <span class="tab-favicon">T</span>
+              <span class="tab-title">Tend — Clinician</span>
+            </div>
+          </div>
+          <div class="browser-toolbar">
+            <button class="browser-btn" id="cw-back" title="Back" disabled><i data-lucide="chevron-left"></i></button>
+            <button class="browser-btn" id="cw-forward" title="Forward" disabled><i data-lucide="chevron-right"></i></button>
+            <button class="browser-btn" id="cw-reload" title="Reload"><i data-lucide="rotate-cw"></i></button>
+            <div class="address-bar">
+              <i data-lucide="lock" class="addr-lock"></i>
+              <span class="addr-url" id="cw-url">tend.health/patients</span>
+            </div>
+          </div>
+        </div>
+        <div class="web-viewport" id="cw-root"></div>
+      </div>
+    </section>
+
+    <section class="device-col">
+      <h3>Patient Mobile</h3>
+      <div class="phone" id="surface-patient-mobile">
+        <div class="phone-statusbar"><span>9:41</span><span class="statusbar-icons"><i data-lucide="signal-high"></i><i data-lucide="wifi"></i><i data-lucide="battery-full"></i></span></div>
+        <div class="phone-viewport" id="pm-root"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-host"></div>
+  <div id="push-host"></div>
+
+  <script src="state.js?v=57"></script>
+  <script src="clinician-mobile.js?v=57"></script>
+  <script src="clinician-web.js?v=57"></script>
+  <script src="patient-mobile.js?v=57"></script>
+  <script src="app.js?v=57"></script>
+</body>
+</html>
