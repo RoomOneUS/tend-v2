@@ -24,6 +24,7 @@
           <div class="hi">Good morning,</div>
           <div class="name row between">Chen <span class="avatar md s-pink" data-pm-tab="me" style="cursor:pointer" title="Profile">C</span></div>
         </div>
+        ${S.compliance.visibleToPatient ? `
         <div class="compliance-card" data-pm-sub="progress">
           <div class="label">Today's compliance</div>
           <div class="row">
@@ -31,7 +32,7 @@
             <div class="delta"><i data-lucide="trending-up"></i> +6 this wk</div>
           </div>
           <div style="margin-top:10px"><div class="progress-bar" style="background:rgba(255,255,255,.2)"><div class="fill" style="background:white;width:${S.compliance.value}%"></div></div></div>
-        </div>
+        </div>` : ''}
         <div class="row between" style="padding:0 18px"><div class="bold">Today</div><div class="small dim">Wed, May 27</div></div>
         <div style="margin-top:8px">
           ${S.patientApp.tasks.map(t => `
@@ -474,6 +475,7 @@
     if (nav.sub === 'calendar-int') return calendarInt();
     if (nav.sub === 'data-sharing') return dataSharing();
     if (nav.sub === 'progress')     return progress();
+    if (nav.sub === 'privacy')      return privacyPolicy();
 
     return `
       <div class="screen">
@@ -484,8 +486,8 @@
           <div style="font-size:22px;font-weight:700">Chen</div>
           <div style="margin-top:6px"><span class="chip green"><i data-lucide="sparkles"></i> Shari B Kaplan, LCSW · your clinician</span></div>
         </div>
-        <div style="margin:0 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="card" data-pm-sub="progress" style="cursor:pointer;text-align:center"><div class="big" style="color:var(--primary)">${S.compliance.value}%</div><div class="tiny muted">Avg compliance</div></div>
+        <div style="margin:0 16px;display:grid;grid-template-columns:${S.compliance.visibleToPatient?'1fr 1fr':'1fr'};gap:8px">
+          ${S.compliance.visibleToPatient ? `<div class="card" data-pm-sub="progress" style="cursor:pointer;text-align:center"><div class="big" style="color:var(--primary)">${S.compliance.value}%</div><div class="tiny muted">Avg compliance</div></div>` : ''}
           <div class="card" style="text-align:center"><div class="big">${S.sessions.length}</div><div class="tiny muted">Sessions</div></div>
         </div>
         <div class="section-label">Settings</div>
@@ -497,7 +499,25 @@
         <div class="section-label">Legal</div>
         <div class="list" style="padding-bottom:24px">
           <div class="row-item"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="file-text"></i></div><div class="body"><div class="title">Terms of service</div></div><div><i data-lucide="chevron-right"></i></div></div>
-          <div class="row-item"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="shield"></i></div><div class="body"><div class="title">Privacy policy</div></div><div><i data-lucide="chevron-right"></i></div></div>
+          <div class="row-item" data-pm-sub="privacy"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="shield"></i></div><div class="body"><div class="title">Privacy policy</div></div><div><i data-lucide="chevron-right"></i></div></div>
+        </div>
+      </div>
+      ${tabbar()}
+    `;
+  }
+  function privacyPolicy() {
+    return `
+      <div class="screen">
+        <div class="appbar"><button class="back" data-pm-back><i data-lucide="chevron-left"></i></button><div class="center-title">Privacy policy</div><span style="width:28px"></span></div>
+        <div style="padding:4px 16px 90px">
+          <div class="card" style="display:flex;flex-direction:column;gap:12px">
+            <div class="row gap-2" style="align-items:center">
+              <div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="shield-check"></i></div>
+              <div class="bold" style="font-size:15px">Your privacy &amp; confidentiality</div>
+            </div>
+            <p style="margin:0;font-size:13px;line-height:1.55;color:#334155">Protecting the confidentiality of your health information is central to how the platform is built and operated. We are committed to handling all personal and protected health information in a manner consistent with the standards established under the U.S. Health Insurance Portability and Accountability Act of 1996 (HIPAA), and we are actively working toward full HIPAA compliance across our systems, processes, and third-party integrations.</p>
+            <p style="margin:0;font-size:13px;line-height:1.55;color:#334155">Access to patient data is strictly limited to authorized personnel on a need-to-know basis, but rest assured &mdash; every individual involved in the development, operation, or maintenance of the platform is required to complete a thorough vetting process, including successful completion of a Level 2 background screening. All such personnel are bound by confidentiality obligations and receive regular training and briefings that reinforce the critical importance of safeguarding patient information.</p>
+          </div>
         </div>
       </div>
       ${tabbar()}
@@ -587,6 +607,7 @@
     `;
   }
   function progress() {
+    if (!S.compliance.visibleToPatient) { nav.sub = null; return nav.tab === 'me' ? me() : today(); }
     return `
       <div class="screen">
         <div class="appbar"><button class="back" data-pm-back><i data-lucide="chevron-left"></i></button><div class="center-title">Progress</div><span style="width:28px"></span></div>

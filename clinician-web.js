@@ -81,7 +81,7 @@
       return S.sessions.slice().reverse().map(s => `
         <div class="event-row" data-cw-action="open-session" data-id="${s.id}" style="cursor:pointer">
           <div class="ev-ic"><i data-lucide="file-text"></i></div>
-          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.presenting||'').slice(0,90))}..."</div></div>
+          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.summary||s.note?.assessmentPlan||'').slice(0,90))}..."</div></div>
           <div class="dim tiny">${esc(s.duration)}</div>
         </div>`).join('');
     }
@@ -218,9 +218,10 @@
 
   /* ---------- Add Patient wizard ---------- */
   function ensureAddFlow() {
-    if (!S.addPatientFlow) S.addPatientFlow = { step:1, name:'', email:'', age:'', emergency:'', tags:['anxiety','new intake','telehealth'] };
+    if (!S.addPatientFlow) S.addPatientFlow = { step:1, name:'', sex:'', email:'', phone:'', age:'', emergency:'', comm:['SMS','WhatsApp','Email'], tags:['anxiety','new intake','telehealth'] };
     return S.addPatientFlow;
   }
+  const COMM_METHODS = ['SMS','WhatsApp','Phone','Email','In-app'];
   function stepperHtml(active) {
     const steps = [['Basic info',1],['Past sessions',2],['Confirmation',3]];
     return `<div class="stepper">${steps.map(([l,n],i)=>`
@@ -239,11 +240,21 @@
             <div class="ap-sec-h"><div class="bold">Basic information</div><div class="dim tiny">How this patient will appear across Tend.</div></div>
             <div class="ap-row">
               ${apField('Full name', f.name, 'First Last', true, 'ap-name')}
+              ${apSelect('Sex', f.sex, ['Female','Male','Other','Prefer not to say'], false, 'ap-sex')}
+            </div>
+            <div class="ap-row">
               ${apField('Email', f.email, 'patient@email.com', true, 'ap-email')}
+              ${apField('Phone', f.phone, '+1 555 0188', false, 'ap-phone')}
             </div>
             <div class="ap-row">
               ${apField('Age', f.age, 'e.g. 32', false, 'ap-age')}
               ${apField('Emergency contact', f.emergency, 'Name · phone', false, 'ap-emergency')}
+            </div>
+            <div class="ap-comm">
+              <div class="ap-field-l"><span>Preferred communication methods</span><span class="dim tiny">select all that apply</span></div>
+              <div class="comm-chips">
+                ${COMM_METHODS.map(m=>`<button class="comm-chip ${f.comm.includes(m)?'on':''}" data-cw-action="ap-toggle-comm" data-comm="${esc(m)}">${f.comm.includes(m)?'<i data-lucide="check"></i>':''}${esc(m)}</button>`).join('')}
+              </div>
             </div>
           </div>
           <div class="ap-sec ap-sec-divider">
@@ -275,8 +286,11 @@
               <div><div class="bold" style="font-size:16px">${esc(f.name||'—')}</div><div class="dim small">${esc(f.email||'—')}</div></div>
             </div>
             <div class="ap-review-rows">
+              <div class="rr"><span class="lbl">Sex</span><span class="val">${esc(f.sex||'—')}</span></div>
+              <div class="rr"><span class="lbl">Phone</span><span class="val">${esc(f.phone||'—')}</span></div>
               <div class="rr"><span class="lbl">Age</span><span class="val">${esc(f.age||'—')}</span></div>
               <div class="rr"><span class="lbl">Emergency contact</span><span class="val">${esc(f.emergency||'—')}</span></div>
+              <div class="rr"><span class="lbl">Preferred communication</span><span class="val">${(f.comm&&f.comm.length)?f.comm.map(m=>`<span class="chip sm gray">${esc(m)}</span>`).join(' '):'<span class="dim">—</span>'}</span></div>
               <div class="rr"><span class="lbl">Tags</span><span class="val">${f.tags.map(t=>`<span class="chip sm gray">${esc(t)}</span>`).join(' ')||'<span class="dim">—</span>'}</span></div>
               <div class="rr"><span class="lbl">Past sessions</span><span class="val dim">None — to be added later</span></div>
             </div>
@@ -319,6 +333,16 @@
         <div class="ap-input"><input id="${id}" placeholder="${esc(placeholder)}" value="${esc(value||'')}" /></div>
       </div>`;
   }
+  function apSelect(label, value, options, required, id) {
+    return `
+      <div class="ap-field">
+        <div class="ap-field-l"><span>${esc(label)}</span><span class="dim tiny">${required?'required':'optional'}</span></div>
+        <div class="ap-input ap-select">
+          <select id="${id}"><option value="" ${!value?'selected':''}>Select…</option>${options.map(o=>`<option value="${esc(o)}" ${value===o?'selected':''}>${esc(o)}</option>`).join('')}</select>
+          <i data-lucide="chevron-down"></i>
+        </div>
+      </div>`;
+  }
   function sideTipHtml(kind) {
     return `
       <div class="ap-tip">
@@ -356,7 +380,9 @@
     const f = ensureAddFlow();
     const g = id => document.getElementById(id);
     if (g('ap-name')) f.name = g('ap-name').value;
+    if (g('ap-sex')) f.sex = g('ap-sex').value;
     if (g('ap-email')) f.email = g('ap-email').value;
+    if (g('ap-phone')) f.phone = g('ap-phone').value;
     if (g('ap-age')) f.age = g('ap-age').value;
     if (g('ap-emergency')) f.emergency = g('ap-emergency').value;
   }
@@ -368,8 +394,10 @@
     const isPending = String(target).startsWith('pp');
     const p = isPending
       ? (S.pendingPatients.find(x => x.id === target) || {})
-      : { id:'sarah', name:S.patient.name, email:'chen.v@email.com', age:S.patient.age, emergency:'Mira V. · +1 555 0143' };
+      : { id:'sarah', name:S.patient.name, email:'chen.v@email.com', age:S.patient.age, emergency:'Mira V. · +1 555 0143', sex:S.patient.sex, phone:S.patient.phone, comm:S.patient.comm };
     const initials = (p.name || '· ·').split(' ').map(x => x[0]).join('').slice(0,2).toUpperCase();
+    const pComm = p.comm || [];
+    const visOn = S.compliance.visibleToPatient;
     return `
       <div class="ep-backdrop" data-cw-action="ep-close-bg">
         <div class="ep-modal" onclick="event.stopPropagation()">
@@ -381,15 +409,34 @@
             <button class="ep-close" data-cw-action="ep-close"><i data-lucide="x"></i></button>
           </div>
           <div class="ep-body">
-            ${editField('Full name', p.name||'', 'ep-name')}
-            ${editField('Email', p.email||'', 'ep-email')}
+            <div class="ep-row">
+              ${editField('Full name', p.name||'', 'ep-name')}
+              ${editSelect('Sex', p.sex||'', ['Female','Male','Other','Prefer not to say'], 'ep-sex')}
+            </div>
+            <div class="ep-row">
+              ${editField('Email', p.email||'', 'ep-email')}
+              ${editField('Phone', p.phone||'', 'ep-phone')}
+            </div>
             <div class="ep-row">
               ${editField('Age', p.age||'', 'ep-age')}
               ${editField('Emergency contact', p.emergency||'', 'ep-emergency')}
             </div>
+            <div class="ap-comm">
+              <div class="ap-field-l"><span>Preferred communication methods</span></div>
+              <div class="comm-chips">
+                ${COMM_METHODS.map(m=>`<button class="comm-chip ${pComm.includes(m)?'on':''}" data-cw-action="ep-toggle-comm" data-comm="${esc(m)}">${pComm.includes(m)?'<i data-lucide="check"></i>':''}${esc(m)}</button>`).join('')}
+              </div>
+            </div>
             <div class="ep-note">
               <i data-lucide="info"></i>
               <div><div class="bold small">Changing email re-issues the invite</div><div class="small">If the patient hasn't signed up yet, the old link will stop working.</div></div>
+            </div>
+            <div class="ep-toggle-row">
+              <div class="body">
+                <div class="bold small">Show compliance &amp; progress to patient</div>
+                <div class="dim small" style="line-height:1.4;margin-top:2px">When on, the patient sees their score on Today, in their profile, and can open the progress view.</div>
+              </div>
+              <div class="switch ${visOn?'on':''}" data-cw-action="toggle-compliance-vis"></div>
             </div>
           </div>
           <div class="ep-foot">
@@ -407,6 +454,16 @@
       <div class="ap-field">
         <div class="ap-field-l"><span>${esc(label)}</span></div>
         <div class="ap-input"><input id="${id}" value="${esc(value||'')}" /></div>
+      </div>`;
+  }
+  function editSelect(label, value, options, id) {
+    return `
+      <div class="ap-field">
+        <div class="ap-field-l"><span>${esc(label)}</span></div>
+        <div class="ap-input ap-select">
+          <select id="${id}"><option value="" ${!value?'selected':''}>Select…</option>${options.map(o=>`<option value="${esc(o)}" ${value===o?'selected':''}>${esc(o)}</option>`).join('')}</select>
+          <i data-lucide="chevron-down"></i>
+        </div>
       </div>`;
   }
   function tagFilterMenu() {
@@ -538,8 +595,6 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div class="field"><label>Full name</label><input value="${esc(S.clinician.name)}" /></div>
               <div class="field"><label>Email</label><input value="${esc(S.clinician.email)}" /></div>
-              <div class="field"><label>License #</label><input value="${esc(S.clinician.license)}" /></div>
-              <div class="field"><label>Time zone</label><input value="${esc(S.clinician.tz)}" /></div>
             </div>
             <div class="row gap-2" style="justify-content:flex-end"><button class="btn sm">Cancel</button><button class="btn sm primary">Save changes</button></div>
           </div>
@@ -796,10 +851,8 @@
     const num = (S.sessions[S.sessions.length-1]?.num || 12) + 1;
     const id = 's' + num;
     const noteFields = note
-      ? { subjective:'', objective:'', presenting: note.split('\n').slice(0,3).join(' '), interventions:'', homework:'' }
-      : (transcript
-          ? { subjective:'', objective:'', presenting: transcript.split('\n').slice(0,3).join(' '), interventions:'', homework:'' }
-          : { subjective:'', objective:'', presenting:'', interventions:'', homework:'' });
+      ? { summary:'', subjective:'', objective:'', assessmentPlan: note.split('\n').slice(0,3).join(' ') }
+      : { summary:'', subjective:'', objective:'', assessmentPlan:'' };
     S.sessions.push({
       id, num, date:'today', duration:'-', src,
       stages:{ raw: !!transcript, note: !!note, assessment:false, plan:false },
@@ -815,8 +868,18 @@
   /* ---------- Note editor ---------- */
   function noteEditor() {
     const s = S.sessions.find(x => x.id === nav.sessionId) || S.sessions[S.sessions.length-1];
+    const tx = s.transcript;
+    const transcriptBody = Array.isArray(tx)
+      ? tx.map(t => `
+          <div class="transcript-turn">
+            <div class="who ${t.who === S.clinician.name.split(' ')[0] || t.who === 'Shari' ? 'clin' : 'pat'}">${esc(t.who)}</div>
+            <div class="line">${esc(t.text)}</div>
+          </div>`).join('')
+      : (typeof tx === 'string' && tx.trim()
+          ? `<div class="transcript-raw">${esc(tx)}</div>`
+          : `<div class="transcript-empty"><i data-lucide="file-x"></i> No transcript was uploaded for this session.</div>`);
     return shell([{label:esc(S.patient.name),go:'patient'},{label:`Session #${s.num} · Note`}], `
-      <div class="row between" style="margin-bottom:12px">
+      <div class="row between" style="margin-bottom:12px;flex:0 0 auto">
         <div class="row gap-2"><div class="bold small">Template:</div>
           <select class="btn sm" style="width:auto"><option>default <i data-lucide="chevron-down"></i></option></select>
         </div>
@@ -825,18 +888,26 @@
           <button class="btn primary" data-cw-action="note-next">Save and Continue: Assessment <i data-lucide="arrow-right"></i></button>
         </div>
       </div>
-      <div class="card">
-        <div class="field"><label>Session date</label><input value="May 23, 2026 · 14:00" /></div>
-        <div class="field"><label>Subjective <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
-          <textarea id="cw-note-subjective">${esc(s.note.subjective || '')}</textarea></div>
-        <div class="field"><label>Objective <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
-          <textarea id="cw-note-objective">${esc(s.note.objective || '')}</textarea></div>
-        <div class="field"><label>Presenting issues <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
-          <textarea id="cw-note-presenting">${esc(s.note.presenting)}</textarea></div>
-        <div class="field"><label>Interventions <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
-          <textarea id="cw-note-interventions">${esc(s.note.interventions)}</textarea></div>
-        <div class="field"><label>Homework / next steps</label>
-          <textarea id="cw-note-homework">${esc(s.note.homework)}</textarea></div>
+      <div class="split">
+        <div class="card">
+          <div class="field"><label>Session date</label><input value="May 23, 2026 · 14:00" /></div>
+          <div class="field"><label>Session summary <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
+            <textarea id="cw-note-summary" style="min-height:72px">${esc(s.note.summary || '')}</textarea></div>
+          <div class="field"><label>Subjective <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
+            <textarea id="cw-note-subjective">${esc(s.note.subjective || '')}</textarea></div>
+          <div class="field"><label>Objective <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
+            <textarea id="cw-note-objective">${esc(s.note.objective || '')}</textarea></div>
+          <div class="field"><label>Assessment and Plan <span class="chip purple"><i data-lucide="sparkles"></i> AI drafted</span></label>
+            <textarea id="cw-note-assessment-plan" style="min-height:150px">${esc(s.note.assessmentPlan || '')}</textarea></div>
+        </div>
+        <div class="card scroll-card">
+          <div class="scroll-card-head">
+            <div class="panel-head"><h3><i data-lucide="file-text"></i> Raw transcript</h3>
+              <span class="tiny" style="color:var(--ink-3)">${esc(s.src)} · ${esc(s.date.trim())} · ${esc(s.duration)}</span>
+            </div>
+          </div>
+          <div class="scroll-card-body">${transcriptBody}</div>
+        </div>
       </div>
     `);
   }
@@ -921,7 +992,7 @@
       return S.sessions.slice().reverse().map(s => `
         <div class="event-row" data-cw-action="open-session" data-id="${s.id}" style="cursor:pointer">
           <div class="ev-ic"><i data-lucide="file-text"></i></div>
-          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.presenting||'').slice(0,90))}..."</div></div>
+          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.summary||s.note?.assessmentPlan||'').slice(0,90))}..."</div></div>
           <div class="dim tiny">${esc(s.duration)}</div>
         </div>`).join('');
     }
@@ -1110,7 +1181,7 @@
       return assessmentCard + S.sessions.slice().reverse().slice(0,4).map(s => `
         <div class="event-row" data-cw-action="open-session" data-id="${s.id}" style="cursor:pointer">
           <div class="ev-ic"><i data-lucide="file-text"></i></div>
-          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.presenting||'').slice(0,80))}..."</div></div>
+          <div class="body"><div class="t">Session #${s.num} · ${esc(s.date)}</div><div class="m">"${esc((s.note?.summary||s.note?.assessmentPlan||'').slice(0,80))}..."</div></div>
           <div><i data-lucide="chevron-right"></i></div>
         </div>`).join('');
     }
@@ -1175,6 +1246,14 @@
     return shell([{label:esc(S.patient.name),go:'patient'},{label:'Compliance & progress'}], `
       <h2 style="margin:0 0 4px">Compliance & progress</h2>
       <div class="small muted" style="margin-bottom:14px">How Chen is tracking against her treatment plan</div>
+      <div class="card cw-vis-toggle" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+        <div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="${S.compliance.visibleToPatient?'eye':'eye-off'}"></i></div>
+        <div style="flex:1">
+          <div class="bold small">Show compliance & progress to patient</div>
+          <div class="dim small" style="line-height:1.4;margin-top:2px">When on, ${esc(S.patient.name.split(' ')[0])} sees this score on their Today screen and profile, and can open their own progress view. Off by default.</div>
+        </div>
+        <div class="switch ${S.compliance.visibleToPatient?'on':''}" data-cw-action="toggle-compliance-vis"></div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div class="card"><div class="kicker">Avg compliance · 30d</div><div class="big" style="font-size:34px">79<span class="small muted">%</span></div><div class="small" style="color:var(--primary)">▲ +6 vs prior 30d</div></div>
         <div class="card"><div class="kicker">Sessions</div><div class="big" style="font-size:34px">${S.sessions.length}</div><div class="small muted">Bi-weekly cadence</div></div>
@@ -1247,8 +1326,8 @@
           ${stages.note ? `
           <div class="card" style="margin-bottom:12px">
             <div class="panel-head"><h3><i data-lucide="notebook-pen"></i> Note <span class="chip green"><i data-lucide="check"></i> Complete</span></h3><button class="btn sm" data-cw-go="note">Open editor</button></div>
-            <div class="kicker">Presenting issues</div><div class="small" style="margin:4px 0 8px;line-height:1.5">${esc(s.note.presenting)}</div>
-            <div class="kicker">Interventions</div><div class="small" style="line-height:1.5">${esc(s.note.interventions)}</div>
+            <div class="kicker">Subjective</div><div class="small" style="margin:4px 0 8px;line-height:1.5">${esc(s.note.subjective || '—')}</div>
+            <div class="kicker">Assessment and Plan</div><div class="small" style="line-height:1.5">${esc(s.note.assessmentPlan || '—')}</div>
           </div>
           ` : (nextUpStage === 'note' ? `
           <div class="card" style="margin-bottom:12px;background:var(--warning-soft);border-color:#fcd34d">
@@ -1641,6 +1720,15 @@
       }
       if (a === 'ap-back') { const f = ensureAddFlow(); if (f.step > 1) { f.step -= 1; render(); } else { nav.screen = 'patients'; render(); } return; }
       if (a === 'ap-cancel') { S.addPatientFlow = null; nav.screen = 'patients'; render(); return; }
+      if (a === 'ap-toggle-comm') {
+        readApInputs();
+        const f = ensureAddFlow();
+        const m = b.dataset.comm;
+        if (!Array.isArray(f.comm)) f.comm = [];
+        f.comm = f.comm.includes(m) ? f.comm.filter(x => x !== m) : [...f.comm, m];
+        render();
+        return;
+      }
       if (a === 'ap-tag-remove') { const f = ensureAddFlow(); f.tags = f.tags.filter(t => t !== b.dataset.tag); render(); return; }
       if (a === 'ap-tag-start') {
         readApInputs();
@@ -1661,7 +1749,7 @@
       }
       if (a === 'ap-create') {
         const f = ensureAddFlow();
-        S.pendingPatients.push({ id:'pp'+Math.random().toString(36).slice(2,7), name:f.name||'New Patient', email:f.email||'unknown@email.com', age:f.age||null, emergency:f.emergency||null, tags:f.tags.slice(), invitedAt:'just now' });
+        S.pendingPatients.push({ id:'pp'+Math.random().toString(36).slice(2,7), name:f.name||'New Patient', sex:f.sex||null, email:f.email||'unknown@email.com', phone:f.phone||null, age:f.age||null, emergency:f.emergency||null, comm:(f.comm||[]).slice(), tags:f.tags.slice(), invitedAt:'just now' });
         notify('Patient created · invite sent');
         nav.screen = 'addPatientSuccess';
         render();
@@ -1672,14 +1760,33 @@
       if (a === 'edit-patient') { S.editPatientModal = 'sarah'; render(); return; }
       if (a === 'edit-pending') { S.editPatientModal = b.dataset.id; render(); return; }
       if (a === 'ep-close' || a === 'ep-close-bg') { S.editPatientModal = null; render(); return; }
+      if (a === 'toggle-compliance-vis') {
+        S.compliance.visibleToPatient = !S.compliance.visibleToPatient;
+        notify(S.compliance.visibleToPatient ? 'Compliance now visible to patient' : 'Compliance hidden from patient');
+        render();
+        return;
+      }
+      if (a === 'ep-toggle-comm') {
+        const t = S.editPatientModal;
+        const obj = String(t).startsWith('pp') ? S.pendingPatients.find(x => x.id === t) : S.patient;
+        if (obj) {
+          if (!Array.isArray(obj.comm)) obj.comm = [];
+          const m = b.dataset.comm;
+          obj.comm = obj.comm.includes(m) ? obj.comm.filter(x => x !== m) : [...obj.comm, m];
+        }
+        render();
+        return;
+      }
       if (a === 'ep-save') {
         const target = b.dataset.target;
         const g = id => document.getElementById(id)?.value || '';
         if (String(target).startsWith('pp')) {
           const p = S.pendingPatients.find(x => x.id === target);
-          if (p) { p.name = g('ep-name'); p.email = g('ep-email'); p.age = g('ep-age'); p.emergency = g('ep-emergency'); }
+          if (p) { p.name = g('ep-name'); p.sex = g('ep-sex'); p.email = g('ep-email'); p.phone = g('ep-phone'); p.age = g('ep-age'); p.emergency = g('ep-emergency'); }
         } else {
           S.patient.name = g('ep-name') || S.patient.name;
+          S.patient.sex = g('ep-sex') || S.patient.sex;
+          S.patient.phone = g('ep-phone') || S.patient.phone;
           S.patient.age = parseInt(g('ep-age'),10) || S.patient.age;
         }
         notify('Patient updated');
@@ -1805,11 +1912,10 @@
         const s = S.sessions.find(x => x.id === nav.sessionId);
         if (s) {
           const read = id => document.getElementById(id)?.value ?? '';
-          s.note.subjective   = read('cw-note-subjective');
-          s.note.objective    = read('cw-note-objective');
-          s.note.presenting   = read('cw-note-presenting');
-          s.note.interventions= read('cw-note-interventions');
-          s.note.homework     = read('cw-note-homework');
+          s.note.summary       = read('cw-note-summary');
+          s.note.subjective    = read('cw-note-subjective');
+          s.note.objective     = read('cw-note-objective');
+          s.note.assessmentPlan= read('cw-note-assessment-plan');
           s.stages.note = true;
         }
         if (a === 'note-save') {

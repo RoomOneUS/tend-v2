@@ -1409,6 +1409,14 @@ select {
   flex: 1 1 auto;
   min-height: 0;
 }
+/* Each pane scrolls independently. The right pane (.scroll-card) manages
+   its own internal scroll, so only the plain card needs overflow here. */
+.split > .card {
+  min-height: 0;
+}
+.split > .card:not(.scroll-card) {
+  overflow-y: auto;
+}
 
 .panel {
   background: white;
@@ -1888,6 +1896,37 @@ select {
   min-height: 0;
   overflow-y: auto;
   padding: 12px 14px 14px;
+}
+
+/* Note editor — raw transcript pane */
+.transcript-turn {
+  margin-bottom: 14px;
+}
+.transcript-turn .who {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.transcript-turn .who.clin { color: var(--primary); }
+.transcript-turn .who.pat { color: var(--ink-2); }
+.transcript-turn .line {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.transcript-raw {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+.transcript-empty {
+  font-size: 13px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
 }
 
 .rx-card {
@@ -4056,6 +4095,16 @@ select {
 .ap-input { background: #f7f6f2; border: 1px solid #eef2f1; border-radius: 11px; padding: 0 12px; height: 42px; display: flex; align-items: center; }
 .ap-input input { flex: 1; border: 0; outline: 0; background: transparent; font-size: 14px; color: #0f172a; font-family: inherit; }
 .ap-input input::placeholder { color: #94a3b8; }
+.ap-input.ap-select { justify-content: space-between; }
+.ap-input.ap-select select { flex: 1; border: 0; outline: 0; background: transparent; font-size: 14px; color: #0f172a; font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.ap-input.ap-select i { width: 16px; height: 16px; color: #94a3b8; pointer-events: none; }
+.ap-comm { display: flex; flex-direction: column; gap: 8px; }
+.comm-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.comm-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; background: #f7f6f2; border: 1px solid #eef2f1; color: #64748b; font-family: inherit; }
+.comm-chip i { width: 13px; height: 13px; }
+.comm-chip.on { background: #e6f4f1; border: 1.5px solid #0f766e; color: #0f766e; }
+.ep-toggle-row { display: flex; align-items: center; gap: 16px; background: #f7f6f2; border: 1px solid #eef2f1; border-radius: 12px; padding: 12px 14px; }
+.ep-toggle-row .body { flex: 1; }
 .chip.dark { background: #0f172a; color: #fff; }
 .chip.dark .chip-x i { color: #fff; }
 .chip.dash { background: transparent; color: #64748b; border: 1px dashed #e2e8f0; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
