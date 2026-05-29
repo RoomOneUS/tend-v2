@@ -53,15 +53,15 @@
 
   /* ---------- Plan ---------- */
   function plan() {
-    const ver = nav.planVersion ?? S.txPlan.currentVersion;
-    const cur = ver === S.txPlan.currentVersion;
-    const v = S.txPlan.versions[ver];
+    const ver = nav.planVersion ?? S.goals.currentVersion;
+    const cur = ver === S.goals.currentVersion;
+    const v = S.goals.versions[ver];
     const groups = { medication:[], sleep:[], journaling:[], exercise:[] };
     v.rxs.forEach(r => (groups[r.type] = groups[r.type] || []).push(r));
     const order = [['medication','Medication','<i data-lucide="pill"></i>'],['sleep','Sleep','<i data-lucide="moon"></i>'],['journaling','Journaling','<i data-lucide="book-open"></i>'],['exercise','Exercise','<i data-lucide="wind"></i>']];
     return `
       <div class="screen">
-        <div class="appbar"><h2>Treatment plan</h2><div class="chip green" data-pm-modal="versions">v${ver} · ${cur?'current':'older'} <i data-lucide="chevron-down"></i></div></div>
+        <div class="appbar"><h2>Goals</h2><div class="chip green" data-pm-modal="versions">v${ver} · ${cur?'current':'older'} <i data-lucide="chevron-down"></i></div></div>
         ${!cur ? `<div class="banner amber" style="margin:6px 16px">Viewing v${ver}. No longer active. <button class="btn sm primary" data-pm-action="plan-latest">Return to current</button></div>` : ''}
         ${order.map(([k,label,ic]) => groups[k]?.length ? `
           <div class="rx-group-h"><div class="l">${ic} ${label}</div><div class="c">${groups[k].length}</div></div>
@@ -82,8 +82,8 @@
   function isMedTaken() { return S.patientApp.tasks.find(t => t.kind==='medication')?.done; }
 
   function versionsSheet(kind) {
-    const cur = S.txPlan.currentVersion;
-    const items = Object.keys(S.txPlan.versions).map(n => parseInt(n)).sort((a,b)=>b-a);
+    const cur = S.goals.currentVersion;
+    const items = Object.keys(S.goals.versions).map(n => parseInt(n)).sort((a,b)=>b-a);
     return `
       <div class="sheet-backdrop" data-pm-modal-close>
         <div class="sheet" onclick="event.stopPropagation()">
@@ -111,7 +111,7 @@
     return `
       <div class="screen">
         <div class="appbar"><h2>Applets</h2><button class="iconbtn"><i data-lucide="search"></i></button></div>
-        <div class="small dim" style="padding:0 18px 6px">Tools that work with your treatment plan.</div>
+        <div class="small dim" style="padding:0 18px 6px">Tools that work with your goals.</div>
         <div class="applet-grid">
           <div class="applet-tile journal" data-pm-sub="journal-list">
             <div class="ic"><i data-lucide="book-open"></i></div><h4>Journal</h4><div class="sub">${S.patientApp.journalEntries.length} entries · 1 due today</div>
@@ -141,7 +141,7 @@
           <div class="avatar lg" style="background:var(--purple-soft);color:var(--purple);margin:0 auto"><i data-lucide="wand"></i></div>
           <div style="font-size:18px;font-weight:700;margin-top:8px">Make your own applet</div>
           <div><span class="chip purple">Coming soon</span></div>
-          <p class="small muted" style="margin-top:8px;line-height:1.5">Describe what you want — a habit tracker, a mood log, a study timer — and Tend will build it for you and wire it into your plan.</p>
+          <p class="small muted" style="margin-top:8px;line-height:1.5">Describe what you want — a habit tracker, a mood log, a study timer — and Tend will build it for you and wire it into your goals.</p>
         </div>
         <div style="padding:0 16px">
           <div class="kicker">Tell us your idea</div>
@@ -239,7 +239,7 @@
     return `
       <div class="screen">
         <div class="appbar"><button class="back" data-pm-action="cancel-edit"><i data-lucide="chevron-left"></i></button><div class="center-title">${editing?'Edit entry':'New entry'}</div><button class="btn sm primary" data-pm-action="save-journal">Save</button></div>
-        ${pre ? `<div class="banner purple" style="margin:6px 16px"><i data-lucide="sparkles"></i> Pre-filled from your plan: "3 things you're grateful for"</div>` : ''}
+        ${pre ? `<div class="banner purple" style="margin:6px 16px"><i data-lucide="sparkles"></i> Pre-filled from your goals: "3 things you're grateful for"</div>` : ''}
         <div style="padding:12px 18px">
           <input id="pm-journal-title" placeholder="Title" style="width:100%;border:0;outline:none;font-size:22px;font-weight:700;background:transparent" value="${esc(titleVal)}" />
           <div class="small muted" style="margin-top:4px"><i data-lucide="calendar"></i> ${editing?esc(editing.date):'Wed, May 27 · 20:42'} · ${shareChip}</div>
@@ -381,7 +381,7 @@
 
   function coachChat() {
     const messages = S.patientApp.coachMessages.map(m => m.from === 'coach'
-      ? `<div class="dl-msg-ai">${esc(m.text)}${m.ref?`<div class="dl-ref"><i data-lucide="clipboard-list"></i> From your plan: ${esc(m.ref)} <i data-lucide="arrow-up-right"></i></div>`:''}</div>`
+      ? `<div class="dl-msg-ai">${esc(m.text)}${m.ref?`<div class="dl-ref"><i data-lucide="clipboard-list"></i> From your goals: ${esc(m.ref)} <i data-lucide="arrow-up-right"></i></div>`:''}</div>`
       : `<div class="dl-msg-user-row"><div class="dl-msg-user">${esc(m.text)}</div></div>`
     ).join('');
     const hasText = (nav.coachDraft || '').trim().length > 0;
@@ -391,7 +391,7 @@
         <div class="dl-thread">
           <div class="dl-ctx-banner">
             <i data-lucide="shield-check"></i>
-            <span>Your Coach knows your treatment plan, prescriptions, and recent data.</span>
+            <span>Your Coach knows your treatment plan, goals, and recent data.</span>
           </div>
           ${messages}
         </div>
@@ -469,7 +469,27 @@
   }
 
   /* ---------- Me ---------- */
+  function wholeLifePlanView() {
+    const v = S.wholeLifePlan.currentVersion;
+    const ver = S.wholeLifePlan.versions[v];
+    const cats = S.wholeLifePlan.categories;
+    const icons = {'Nutrition':'apple','Exercise':'dumbbell','Music & Movement':'music','Meditation & Mindfulness':'brain','Self-regulation tools':'anchor','Breathwork':'wind','Spirituality':'sparkles','Finances':'wallet','Work & Work Relationships':'briefcase','Fun & Hobbies':'palette','Mentoring & Volunteering':'heart-handshake','Relationship with Self':'smile','Relationships with Others':'users','Personality':'user'};
+    return `
+      <div class="screen">
+        <div class="appbar"><button class="back" data-pm-back><i data-lucide="chevron-left"></i></button><div class="center-title">Treatment plan</div><span class="chip green">v${v} · current</span></div>
+        <div style="padding:4px 16px 90px;display:flex;flex-direction:column;gap:12px">
+          ${cats.map(c => { const o = ver.objectives[c]; return `
+            <div class="card" style="display:flex;flex-direction:column;gap:8px">
+              <div class="row gap-2" style="align-items:center"><i data-lucide="${icons[c]||'circle'}" style="color:var(--primary);width:16px;height:16px"></i><div class="bold" style="font-size:15px">${esc(c)}</div></div>
+              <div class="small" style="line-height:1.5;${o?'color:#475569':'color:#94a3b8;font-style:italic'}">${o?esc(o):'No objective set for this category yet.'}</div>
+            </div>`; }).join('')}
+        </div>
+      </div>
+      ${tabbar()}
+    `;
+  }
   function me() {
+    if (nav.sub === 'whole-life-plan') return wholeLifePlanView();
     if (nav.sub === 'integrations') return mIntegrations();
     if (nav.sub === 'apple-watch')  return appleWatch();
     if (nav.sub === 'calendar-int') return calendarInt();
@@ -485,6 +505,9 @@
           <div class="small muted" style="margin-top:8px">Good morning,</div>
           <div style="font-size:22px;font-weight:700">Chen</div>
           <div style="margin-top:6px"><span class="chip green"><i data-lucide="sparkles"></i> Shari B Kaplan, LCSW · your clinician</span></div>
+        </div>
+        <div class="list" style="margin:0 0 8px">
+          <div class="row-item" data-pm-sub="whole-life-plan"><div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="clipboard-list"></i></div><div class="body"><div class="title">Treatment plan</div><div class="meta">14 life categories</div></div><div><i data-lucide="chevron-right"></i></div></div>
         </div>
         <div style="margin:0 16px;display:grid;grid-template-columns:${S.compliance.visibleToPatient?'1fr 1fr':'1fr'};gap:8px">
           ${S.compliance.visibleToPatient ? `<div class="card" data-pm-sub="progress" style="cursor:pointer;text-align:center"><div class="big" style="color:var(--primary)">${S.compliance.value}%</div><div class="tiny muted">Avg compliance</div></div>` : ''}
@@ -564,7 +587,7 @@
           <div class="bold row gap-2" style="margin-bottom:8px"><i data-lucide="footprints"></i> Activity</div>
           <div class="kv-row"><span class="muted">Steps today</span><input id="aw-steps" value="${esc(w.steps)}" style="border:0;text-align:right;font-weight:600;outline:none;background:transparent;font-family:inherit;font-size:12px" /></div>
         </div>
-        <div class="banner amber" style="margin:0 16px 14px"><i data-lucide="info"></i> This data propagates to your treatment plan compliance score.</div>
+        <div class="banner amber" style="margin:0 16px 14px"><i data-lucide="info"></i> This data propagates to your goals compliance score.</div>
       </div>${tabbar()}
     `;
   }
@@ -581,7 +604,7 @@
         <div class="section-label">What you'll get</div>
         <div class="list" style="padding:0 16px">
           <div class="row-item"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="alarm-clock"></i></div><div class="body"><div class="title">Auto-synced reminders</div><div class="meta">Bedtime, medication, journaling — all in one place.</div></div></div>
-          <div class="row-item"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="refresh-cw"></i></div><div class="body"><div class="title">Updates when plan changes</div><div class="meta">When your clinician updates your plan, your calendar updates automatically.</div></div></div>
+          <div class="row-item"><div class="avatar sm" style="background:#f1f5f9"><i data-lucide="refresh-cw"></i></div><div class="body"><div class="title">Updates when goals change</div><div class="meta">When your clinician updates your goals, your calendar updates automatically.</div></div></div>
         </div>
       </div>${tabbar()}
     `;
@@ -623,7 +646,7 @@
         </div>
         <div class="card" style="margin:0 16px">
           <div class="bold"><i data-lucide="info"></i> How this score is calculated</div>
-          <div class="small muted" style="margin-top:6px;line-height:1.5">A weekly rolling average across all prescriptions in your plan. The detailed breakdown is coming after the POC.</div>
+          <div class="small muted" style="margin-top:6px;line-height:1.5">A weekly rolling average across all prescriptions in your goals. The detailed breakdown is coming after the POC.</div>
         </div>
       </div>${tabbar()}
     `;
@@ -650,9 +673,9 @@
 
   // Find a situation-based exercise prescription that fits a dysregulation signal.
   // Matches when the rx is condition-based AND its trigger text references the signal
-  // (or the generic "stress" tag). Returns null when the plan has no relevant fallback.
+  // (or the generic "stress" tag). Returns null when the goals have no relevant fallback.
   function findFallbackRx(signal) {
-    const rxs = (S.txPlan.versions[S.txPlan.currentVersion] || {}).rxs || [];
+    const rxs = (S.goals.versions[S.goals.currentVersion] || {}).rxs || [];
     const aliases = {
       hr: ['hr', 'heart', 'stress'],
       respiration: ['breath', 'respiration', 'panic'],
@@ -664,13 +687,13 @@
   function dysregulationSheet() {
     const d = S.dysregulation;
     if (!d || d.dismissed) return '';
-    const rx = d.rxId ? (S.txPlan.versions[S.txPlan.currentVersion]?.rxs || []).find(r => r.id === d.rxId) : null;
+    const rx = d.rxId ? (S.goals.versions[S.goals.currentVersion]?.rxs || []).find(r => r.id === d.rxId) : null;
     const signalReading = d.signalLabel || `HR ${d.hr} bpm`;
     const signalNoun = d.signal === 'respiration' ? 'breathing has been elevated' : 'heart rate has been elevated';
     const intro = `Your ${signalNoun} across your last few readings (${signalReading} sustained).`;
     const body = rx
-      ? `${intro} Your plan with Shari has a fallback for moments like this.`
-      : `${intro} Your plan doesn't have a specific fallback for this — here are two ways to get support right now.`;
+      ? `${intro} Your goals include a fallback for moments like this.`
+      : `${intro} Your goals don't have a specific fallback for this — here are two ways to get support right now.`;
     const content = rx
       ? `
         <div class="dr-rx-card">
@@ -678,7 +701,7 @@
             <div class="dr-rx-icon"><i data-lucide="wind"></i></div>
             <div class="dr-rx-titles">
               <div class="dr-rx-title">${esc(rx.title)}</div>
-              <div class="dr-rx-sub">From your treatment plan</div>
+              <div class="dr-rx-sub">From your goals</div>
             </div>
           </div>
           <div class="dr-rx-rules">${esc(rx.rules || '')}</div>
@@ -691,7 +714,7 @@
             <div class="dr-opt-ico purple"><i data-lucide="sparkles"></i></div>
             <div class="dr-opt-col">
               <div class="dr-opt-title">Talk to Coach AI</div>
-              <div class="dr-opt-sub">Ask anything · grounded in your plan</div>
+              <div class="dr-opt-sub">Ask anything · grounded in your goals</div>
             </div>
             <i data-lucide="chevron-right" class="dr-opt-chev"></i>
           </button>
@@ -1193,9 +1216,9 @@
         }
         setTimeout(() => {
           const replies = [
-            { text:"That's frustrating. Your plan with Shari Kaplan has a fallback for nights like this: if you can't sleep within 20 minutes, get up and do a quiet activity until you're drowsy.", ref:'Sleep prescription' },
-            { text:"I hear you. From your treatment plan: 4-7-8 breathwork is your on-demand stress regulator. Want to try a quick round?", ref:'Exercise prescription' },
-            { text:"Got it. I'm not a clinician but I can help you think through what your plan suggests.", ref:null },
+            { text:"That's frustrating. Your goals from Shari Kaplan include a fallback for nights like this: if you can't sleep within 20 minutes, get up and do a quiet activity until you're drowsy.", ref:'Sleep prescription' },
+            { text:"I hear you. From your goals: 4-7-8 breathwork is your on-demand stress regulator. Want to try a quick round?", ref:'Exercise prescription' },
+            { text:"Got it. I'm not a clinician but I can help you think through what your goals suggest.", ref:null },
           ];
           const reply = bad ? { text:"I'm really glad you told me. I've let Shari Kaplan know. If you're in crisis right now, please call 988 or use the resources in the app.", ref:null } : replies[Math.floor(Math.random()*replies.length)];
           S.patientApp.coachMessages.push({ from:'coach', ...reply });
@@ -1205,7 +1228,7 @@
         bus.emit();
       }
       if (a === 'plan-version') { nav.planVersion = parseInt(b.dataset.v,10); nav.modal = null; render(); }
-      if (a === 'plan-latest')  { nav.planVersion = S.txPlan.currentVersion; render(); }
+      if (a === 'plan-latest')  { nav.planVersion = S.goals.currentVersion; render(); }
       if (a === 'dysreg-dismiss' || a === 'dysreg-dismiss-bg') {
         if (S.dysregulation) S.dysregulation.dismissed = true;
         render();
@@ -1213,7 +1236,7 @@
       if (a === 'dysreg-start') {
         if (S.dysregulation) S.dysregulation.dismissed = true;
         nav.tab = 'plan';
-        notify('Following your plan');
+        notify('Following your goals');
         render();
       }
       if (a === 'dysreg-coach') {

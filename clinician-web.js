@@ -2,7 +2,7 @@
 (function () {
   const root = () => document.getElementById('cw-root');
   const nav = {
-    screen: 'patients', // patients, settings, integrations, integrationDemo, patient, messaging, upload, note, assessment, txPlan, compliance, session
+    screen: 'patients', // patients, settings, integrations, integrationDemo, patient, messaging, upload, note, assessment, goals, compliance, session
     sub: null,
     sessionId: 's12',
     assessmentVersion: null,
@@ -10,15 +10,21 @@
     activityFilter: 'all',     // all | sessions | shared | messages | coach
     assessDataTab: 'all',
     txDataTab: 'all',
+    wlpDataTab: 'all',
+    profileTab: 'assessment', // assessment | wlp | goals — left pane of patient profile
+    wlpDraft: null,
     allSubView: 'list',        // list | timeline
     sharedSubView: 'source',   // source | timeline
     rxModal: null,
+    dpModal: null, // {kind:'extract'|'add', sessionId?}
     exportMenuOpen: false,
   };
   window.cwNav = nav;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const DATA_TABS = [['all','All'],['sessions','Sessions'],['shared','Data shared'],['messages','Messages'],['coach','Coach AI']];
+  // Data Browser tabs per spec: All / Sessions / Shared data / Messages. Coach AI is NOT a tab —
+  // coach activity is rolled up as an event inside the All feed.
+  const DATA_TABS = [['all','All'],['sessions','Sessions'],['shared','Data shared'],['messages','Messages']];
 
   function dataSubToggle(tab, scope) {
     if (tab === 'all') {
@@ -44,7 +50,7 @@
       ${arr.map(t => `
         <div class="tl-item ${t.flagged?'flagged':''}">
           <div class="date">${esc(t.date)}</div>
-          <div class="bold small" style="margin-top:2px">${esc(t.label)} ${t.flagged?'<span class="chip red">FLAGGED</span>':''}</div>
+          <div class="bold small" style="margin-top:2px">${t.bps?'<span class="bps-pill">BPS</span> ':''}${esc(t.label)} ${t.flagged?'<span class="chip red">FLAGGED</span>':''}${t.status?`<span class="chip ${t.status==='approved'?'green':'amber'}">${t.status==='approved'?'Approved':'Pending'}</span>`:''}</div>
           <div class="tiny muted">${esc(t.meta||'')}</div>
         </div>`).join('')}
     </div>`;
@@ -62,7 +68,7 @@
           </div>
           <button class="btn sm" data-cw-go="assessment"><i data-lucide="external-link"></i> Open assessment</button>
         </div>
-        <div class="small" style="line-height:1.5;color:#0f172a">${esc(a.body.psychological).slice(0, 220)}…</div>
+        <div class="small" style="line-height:1.5;color:#0f172a">${esc(a.body).slice(0, 220)}…</div>
       </div>`;
   }
 
@@ -86,8 +92,21 @@
         </div>`).join('');
     }
     if (tab === 'shared') {
-      if (nav.sharedSubView === 'timeline') return renderTimeline(S.sharedData.timeline);
-      return S.sharedData.bySource.map(s => `
+      const dps = (S.dataPoints || []).filter(d => d.status === 'approved');
+      if (nav.sharedSubView === 'timeline') {
+        const dpItems = dps.map(d => ({ date:`Collected ${d.collectedAt}`, label:`Data point · ${d.referenceDate}`, meta:d.answer, bps:true }));
+        return renderTimeline(dpItems.concat(S.sharedData.timeline));
+      }
+      const dpGroup = dps.length ? `
+        <div class="shared-source">
+          <div class="src-h"><div class="name"><span class="bps-pill">BPS</span> Data points</div><div class="count">${dps.length} shared</div></div>
+          ${dps.map(d => `
+            <div class="shared-row" data-cw-action="dp-open" data-id="${d.id}" style="cursor:pointer"><div class="ev-ic" style="background:#f1f5f9">·</div>
+              <div class="body">${esc(d.prompt)}</div>
+              <div class="val"><i data-lucide="chevron-right" style="width:14px;height:14px;color:#94a3b8"></i></div>
+            </div>`).join('')}
+        </div>` : '';
+      return dpGroup + S.sharedData.bySource.map(s => `
         <div class="shared-source">
           <div class="src-h"><div class="name"><span>${s.icon}</span> ${esc(s.name)}</div><div class="count">${esc(s.updated)}</div></div>
           ${s.items.map(it => `
@@ -106,16 +125,6 @@
             <div class="dim tiny">${esc(m.at)}</div>
           </div>`).join('')}
       </div>`;
-    }
-    if (tab === 'coach') {
-      const coach = S.activity.filter(a => a.type === 'coach');
-      if (!coach.length) return '<div class="dim small" style="padding:10px">No Coach AI activity. Events appear when Chen starts a new conversation, or returns to an existing one after a quiet gap.</div>';
-      return coach.map(a => `
-        <div class="event-row" data-cw-evt="${a.id}">
-          <div class="ev-ic" style="background:#EDE9FE;color:#6D28D9"><i data-lucide="sparkles"></i></div>
-          <div class="body"><div class="t">${esc(a.title)}</div><div class="m">${esc(a.meta||'')}</div></div>
-          <div class="time">${esc(a.t)}</div>
-        </div>`).join('');
     }
     return '';
   }
@@ -144,7 +153,7 @@
     return `${topbar(crumbs)}
       <div class="web-shell">
         <nav class="web-sidebar">
-          <button class="nav-btn ${nav.screen==='patients'||nav.screen==='patient'||nav.screen.startsWith('session')||nav.screen==='upload'||nav.screen==='note'||nav.screen==='assessment'||nav.screen==='txPlan'||nav.screen==='compliance'?'active':''}" data-cw-go="patients" title="Patients"><i data-lucide="users"></i></button>
+          <button class="nav-btn ${nav.screen==='patients'||nav.screen==='patient'||nav.screen.startsWith('session')||nav.screen==='upload'||nav.screen==='note'||nav.screen==='assessment'||nav.screen==='goals'||nav.screen==='wholeLifePlan'||nav.screen==='compliance'?'active':''}" data-cw-go="patients" title="Patients"><i data-lucide="users"></i></button>
           <button class="nav-btn ${nav.screen==='messaging'?'active':''}" data-cw-go="messaging" title="Messages"><i data-lucide="message-square"></i></button>
           <div style="flex:1"></div>
           <button class="nav-btn ${nav.screen.startsWith('settings')||nav.screen.startsWith('integration')?'active':''}" data-cw-go="settings" title="Settings"><i data-lucide="settings"></i></button>
@@ -678,14 +687,16 @@
         </div>
       </div>
       <div class="web-actions">
-        <button class="btn primary" data-cw-go="txPlan"><i data-lucide="pencil"></i> Edit treatment plan</button>
+        <button class="btn" data-cw-go="wholeLifePlan"><i data-lucide="clipboard-list"></i> Treatment plan</button>
+        <button class="btn primary" data-cw-go="goals"><i data-lucide="pencil"></i> Edit goals</button>
         <button class="btn" data-cw-go="upload"><i data-lucide="upload"></i> Upload session</button>
         <button class="btn" data-cw-go="messaging"><i data-lucide="message-square"></i> Send message</button>
+        <button class="btn" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add data point</button>
       </div>
       ${lockCard}
       <div class="split">
         <div class="panel">
-          ${profileAssessmentCard()}
+          ${profileLeftPane()}
         </div>
         <div class="card scroll-card">
           <div class="scroll-card-head">
@@ -702,6 +713,7 @@
         </div>
       </div>
       ${tagModal()}
+      ${dpModal()}
     `);
   }
 
@@ -716,10 +728,49 @@
         </div>
         <button class="btn primary sm" data-cw-go="assessment"><i data-lucide="clipboard-list"></i> Open assessment</button>
       </div>
-      ${['biological','psychological','social'].map(k => `
-        <div style="margin-top:14px">
-          <div class="kicker" style="color:#0F766E;letter-spacing:0.5px">${k.toUpperCase()}</div>
-          <div class="small" style="margin-top:6px;line-height:1.55">${esc(a.body[k])}</div>
+      <div class="small" style="margin-top:14px;line-height:1.6">${esc(a.body)}</div>
+    `;
+  }
+  // Patient-profile left pane: tab selector (Assessment / Treatment plan / Goals) over the active card.
+  function profileLeftPane() {
+    const tabs = [['assessment','Assessment'],['wlp','Treatment plan'],['goals','Goals']];
+    const seg = `<div class="sub-seg" style="margin-bottom:14px">
+      ${tabs.map(([k,l])=>`<button class="${nav.profileTab===k?'active':''}" data-cw-ptab="${k}">${l}</button>`).join('')}
+    </div>`;
+    let body = '';
+    if (nav.profileTab === 'wlp') body = profileWlpCard();
+    else if (nav.profileTab === 'goals') body = profileGoalsCard();
+    else body = profileAssessmentCard();
+    return seg + body;
+  }
+  function profileWlpCard() {
+    const v = S.wholeLifePlan.currentVersion;
+    const ver = S.wholeLifePlan.versions[v];
+    const cats = S.wholeLifePlan.categories;
+    return `
+      <div class="panel-head">
+        <div><h3 style="margin:0">Treatment plan</h3><div class="small muted" style="margin-top:2px">${cats.length} life categories · v${v} · last edited ${esc(ver.date)}</div></div>
+        <button class="btn primary sm" data-cw-go="wholeLifePlan"><i data-lucide="clipboard-list"></i> Open builder</button>
+      </div>
+      ${cats.map(c => { const o = ver.objectives[c]; return `
+        <div style="margin-top:12px">
+          <div class="kicker" style="color:#0F766E;letter-spacing:0.5px">${esc(c).toUpperCase()}</div>
+          <div class="small" style="margin-top:4px;line-height:1.55;${o?'':'color:#94a3b8;font-style:italic'}">${o?esc(o):'No objective set yet.'}</div>
+        </div>`; }).join('')}
+    `;
+  }
+  function profileGoalsCard() {
+    const rxs = (S.goals.versions[S.goals.currentVersion]||{}).rxs || [];
+    return `
+      <div class="panel-head">
+        <div><h3 style="margin:0">Goals</h3><div class="small muted" style="margin-top:2px">${rxs.length} prescriptions · v${S.goals.currentVersion}</div></div>
+        <button class="btn primary sm" data-cw-go="goals"><i data-lucide="pencil"></i> Edit goals</button>
+      </div>
+      ${rxs.map(r => `
+        <div class="rx-card" style="margin-top:10px">
+          <div class="head"><div class="type">${esc(r.type)}</div></div>
+          <div class="title">${esc(r.title)}</div>
+          <div class="meta">${esc(r.trigger)}</div>
         </div>`).join('')}
     `;
   }
@@ -794,7 +845,7 @@
             <div class="cta"><i data-lucide="arrow-right"></i> Continue</div>
           </div>
           <div class="upload-tile" data-cw-action="upload-manual">
-            <div class="ic"><i data-lucide="pencil"></i></div><h4>Manually</h4><div class="sub">Skip the recording — write the note and treatment plan directly.</div>
+            <div class="ic"><i data-lucide="pencil"></i></div><h4>Manually</h4><div class="sub">Skip the recording — write the note and goals directly.</div>
           </div>
         </div>
         <button class="btn sm" style="margin-top:14px" data-cw-action="upload-notes"><i data-lucide="share-2"></i> From notes only</button>
@@ -855,13 +906,14 @@
       : { summary:'', subjective:'', objective:'', assessmentPlan:'' };
     S.sessions.push({
       id, num, date:'today', duration:'-', src,
-      stages:{ raw: !!transcript, note: !!note, assessment:false, plan:false },
+      stages:{ raw: !!transcript, note: !!note, dataPoints:false },
       note: noteFields,
-      planVersion: 'v' + S.txPlan.currentVersion,
+      planVersion: 'v' + S.goals.currentVersion,
       assessmentVersion: S.assessment.currentVersion,
+      wholeLifePlanVersion: S.wholeLifePlan.currentVersion,
       transcript: transcript || undefined,
     });
-    addActivity({ type:'session', t:'now', title:`Session #${num} created`, meta:`${src} · awaiting ${note?'assessment':'note'}` });
+    addActivity({ type:'session', t:'now', title:`Session #${num} created`, meta:`${src} · awaiting ${note?'data points':'note'}` });
     return id;
   }
 
@@ -885,7 +937,7 @@
         </div>
         <div class="row gap-2">
           <button class="btn" data-cw-action="note-save"><i data-lucide="check"></i> Save</button>
-          <button class="btn primary" data-cw-action="note-next">Save and Continue: Assessment <i data-lucide="arrow-right"></i></button>
+          <button class="btn primary" data-cw-action="note-next">Save and Continue: Data points <i data-lucide="arrow-right"></i></button>
         </div>
       </div>
       <div class="split">
@@ -940,12 +992,10 @@
             </div>
             ${!isCurrent ? '<button class="btn sm"><i data-lucide="git-compare"></i> Compare with current</button>' : ''}
           </div>
-          ${['biological','psychological','social'].map(k => `
-            <div class="assess-section">
-              <div class="sl">${k}</div>
-              ${isCurrent ? `<textarea id="cw-a-${k}" style="width:100%;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5;min-height:84px;outline:none">${esc(a.body[k])}</textarea>`
-                : `<div class="body">${esc(a.body[k])}</div>`}
-            </div>`).join('')}
+          <div class="assess-section">
+            ${isCurrent ? `<textarea id="cw-a-body" style="width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.6;min-height:340px;outline:none">${esc(a.body)}</textarea>`
+              : `<div class="body" style="line-height:1.6">${esc(a.body)}</div>`}
+          </div>
         </div>
         <div class="card ${isCurrent?'scroll-card':''}">
           ${isCurrent ? `
@@ -965,7 +1015,7 @@
               ${renderDataPane(nav.assessDataTab)}
               <div class="card" style="background:var(--purple-soft);border-color:#ddd6fe;margin-top:12px;padding:10px 12px">
                 <div class="bold small" style="color:var(--purple)"><i data-lucide="sparkles"></i> Suggested addition</div>
-                <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Pattern: phone-related avoidance pre-bed correlates with attachment-related work stressors. Consider naming this loop explicitly in the social section.</div>
+                <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Pattern: phone-related avoidance pre-bed correlates with attachment-related work stressors. Consider naming this loop explicitly in the write-up.</div>
               </div>
             </div>
           ` : `
@@ -974,6 +1024,7 @@
           `}
         </div>
       </div>
+      ${dpModal()}
     `);
   }
   function assessDataPane() {
@@ -1036,12 +1087,12 @@
     `;
   }
 
-  /* ---------- Treatment plan builder ---------- */
-  function txPlan() {
-    const draft = S.txPlan.draft || cloneVersion(S.txPlan.currentVersion);
-    S.txPlan.draft = draft;
-    const newV = S.txPlan.currentVersion + 1;
-    return shell([{label:esc(S.patient.name),go:'patient'},{label:`Treatment plan`, },{label:`DRAFT v${newV}`}], `
+  /* ---------- Goals builder ---------- */
+  function goals() {
+    const draft = S.goals.draft || cloneVersion(S.goals.currentVersion);
+    S.goals.draft = draft;
+    const newV = S.goals.currentVersion + 1;
+    return shell([{label:esc(S.patient.name),go:'patient'},{label:`Goals`, },{label:`DRAFT v${newV}`}], `
       <div class="tx-builder-layout">
         <div class="row between" style="margin-bottom:10px;flex:0 0 auto">
           <div></div>
@@ -1069,7 +1120,7 @@
             <div class="scroll-card-head">
               ${txAssessmentBanner()}
               <h3 style="margin:0">Patient context</h3>
-              <div class="small muted" style="margin:4px 0 10px">Browse assessment, sessions, and shared data while you build the plan.</div>
+              <div class="small muted" style="margin:4px 0 10px">Browse assessment, sessions, and shared data while you build the goals.</div>
               <div class="search-pill" style="margin-bottom:10px;width:100%"><span><i data-lucide="search"></i></span><input placeholder='e.g. "sleep", "panic"' /></div>
               <div class="tabs-row">
                 <div class="tabs-strip">
@@ -1084,10 +1135,100 @@
         </div>
       </div>
       ${rxModal()}
+      ${dpModal()}
+    `);
+  }
+  /* ---------- Whole Life Plan (treatment plan) builder ---------- */
+  function cloneWlp(v) {
+    const src = S.wholeLifePlan.versions[v] || { objectives: {} };
+    return { objectives: { ...src.objectives } };
+  }
+  function wholeLifePlan() {
+    const fresh = !nav.wlpDraft;
+    const draft = nav.wlpDraft || cloneWlp(S.wholeLifePlan.currentVersion);
+    nav.wlpDraft = draft;
+    if (fresh) nav.wlpPage = 0;
+    const newV = S.wholeLifePlan.currentVersion + 1;
+    const cats = S.wholeLifePlan.categories;
+    const PER_PAGE = 4;
+    const pageCount = Math.ceil(cats.length / PER_PAGE);
+    const page = Math.min(nav.wlpPage || 0, pageCount - 1);
+    const pageCats = cats.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+    return shell([{label:esc(S.patient.name),go:'patient'},{label:`Treatment plan`},{label:`DRAFT v${newV}`}], `
+      <div class="tx-builder-layout">
+        <div class="row between" style="margin-bottom:10px;flex:0 0 auto">
+          <div></div>
+          <div class="row gap-2"><button class="btn sm" data-cw-action="wlp-discard">Discard changes</button><button class="btn primary sm" data-cw-action="wlp-publish"><i data-lucide="check"></i> Publish v${newV}</button></div>
+        </div>
+        <div class="tx-split">
+          <div class="card scroll-card">
+            <div class="scroll-card-head">
+              <div class="row between">
+                <div><h3 style="margin:0">Treatment plan</h3><div class="small muted">${cats.length} life categories · ${pageCount} pages</div></div>
+                <span class="chip gray">Page ${page+1} of ${pageCount}</span>
+              </div>
+            </div>
+            <div class="scroll-card-body">
+              ${page === 0 ? `
+              <div class="card" style="background:var(--purple-soft);border-color:#ddd6fe;margin-bottom:12px;padding:12px 14px">
+                <div class="bold small" style="color:var(--purple)"><i data-lucide="sparkles"></i> Suggested objective · Nutrition</div>
+                <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Move the caffeine cutoff earlier to 14:00 — sleep-onset latency averages 90 min on days with caffeine after 16:00.</div>
+              </div>` : ''}
+              ${pageCats.map((c) => { const i = cats.indexOf(c); return `
+                <div class="rx-card" style="margin-bottom:10px">
+                  <div class="head"><div class="type">${esc(c)}</div></div>
+                  <textarea id="cw-wlp-${i}" class="wlp-cat" rows="2" placeholder="Objective for ${esc(c)}…" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5;outline:none">${esc(draft.objectives[c]||'')}</textarea>
+                </div>`; }).join('')}
+              <div class="wlp-pager">
+                <button class="btn sm" ${page>0?`data-cw-action="wlp-page" data-page="${page-1}"`:'disabled'}><i data-lucide="chevron-left"></i> Prev</button>
+                <div class="wlp-dots">${Array.from({length:pageCount},(_,p)=>`<span class="dot ${p===page?'on':''}"></span>`).join('')}</div>
+                <button class="btn sm dark" ${page<pageCount-1?`data-cw-action="wlp-page" data-page="${page+1}"`:'disabled'}>Next <i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="card scroll-card">
+            <div class="scroll-card-head">
+              ${txAssessmentBanner()}
+              <h3 style="margin:0">Patient context</h3>
+              <div class="small muted" style="margin:4px 0 10px">Browse the assessment, sessions, and shared data while you write the treatment plan.</div>
+              <div class="search-pill" style="margin-bottom:10px;width:100%"><span><i data-lucide="search"></i></span><input placeholder='e.g. "sleep", "panic"' /></div>
+              <div class="tabs-row">
+                <div class="tabs-strip">
+                  ${DATA_TABS.map(([k,l])=>`<button class="${nav.wlpDataTab===k?'active':''}" data-cw-wlp-tab="${k}">${l}</button>`).join('')}
+                </div>
+                ${dataSubToggle(nav.wlpDataTab, 'wlp')}
+              </div>
+            </div>
+            <div class="scroll-card-body">${renderDataPane(nav.wlpDataTab)}</div>
+          </div>
+        </div>
+      </div>
+      ${dpModal()}
     `);
   }
   function typeLabel(t) {
     return ({sleep:'Sleep schedule', medication:'Medication', journaling:'Journaling', exercise:'Exercise'})[t] || t || '';
+  }
+  // Per-type ACTION fields for the prescription modal (matches the structured Pencil mockups).
+  function rxField(label, id, value, ph) {
+    return `<div class="rx-field"><label>${label}</label><input id="${id}" type="text" value="${esc(value||'')}" placeholder="${ph}" /></div>`;
+  }
+  function rxActionFields(t, rx) {
+    const p = rx.params || {};
+    if (t === 'sleep') return rxField('Bedtime target','cw-rx-bedtime',p.bedtime,'e.g. 22:00')
+      + `<div class="rx-field-row">${rxField('Minimum duration','cw-rx-minDur',p.minDur,'e.g. 7 h')}${rxField('Wake target','cw-rx-wake',p.wake,'e.g. 06:30')}</div>`;
+    if (t === 'medication') return `<div class="rx-field-row">${rxField('Medication','cw-rx-med',p.med,'e.g. Sertraline')}${rxField('Dose','cw-rx-dose',p.dose,'e.g. 50mg')}</div>`;
+    if (t === 'journaling') return rxField('Prompt / exercise','cw-rx-prompt',p.prompt,"e.g. 3 things you're grateful for");
+    if (t === 'exercise') return `<div class="rx-field-row">${rxField('Exercise','cw-rx-exercise',p.exercise,'e.g. 4-7-8 Breathwork')}${rxField('Repetitions / duration','cw-rx-reps',p.reps,'e.g. 4 cycles')}</div>`;
+    return '';
+  }
+  function rxComposeTitle(rx) {
+    const p = rx.params || {};
+    if (rx.type === 'sleep')      return p.bedtime ? `Be asleep by ${p.bedtime}` : (rx.title || 'Sleep schedule');
+    if (rx.type === 'medication') return (p.med || p.dose) ? `Take ${[p.med,p.dose].filter(Boolean).join(' ')}` : (rx.title || 'Medication');
+    if (rx.type === 'journaling') return p.prompt || rx.title || 'Journaling';
+    if (rx.type === 'exercise')   return p.exercise ? `${p.exercise}${p.reps?` (${p.reps})`:''}` : (rx.title || 'Exercise');
+    return rx.title || '(untitled)';
   }
   function rxModal() {
     const m = nav.rxModal;
@@ -1124,10 +1265,7 @@
               </div>
             ` : `
               <div class="rx-modal-sec-lbl">ACTION</div>
-              <div class="rx-field">
-                <label>Title</label>
-                <input id="cw-rx-title" type="text" value="${esc(rx.title||'')}" placeholder="${titlePh}" />
-              </div>
+              ${rxActionFields(t, rx)}
               <div class="rx-modal-sec-lbl">TRIGGER</div>
               <div class="rx-segmented">
                 <button class="${rx.triggerKind!=='situation'?'active':''}" data-cw-action="rx-trig-kind" data-kind="time">Time-based</button>
@@ -1156,12 +1294,13 @@
   }
   function readRxInputs() {
     if (!nav.rxModal) return;
-    const ti = document.getElementById('cw-rx-title');
-    const tr = document.getElementById('cw-rx-trigger');
-    const ru = document.getElementById('cw-rx-rules');
-    if (ti) nav.rxModal.rx.title = ti.value;
-    if (tr) nav.rxModal.rx.triggerDetail = tr.value;
-    if (ru) nav.rxModal.rx.rules = ru.value;
+    const rx = nav.rxModal.rx;
+    const g = id => document.getElementById(id);
+    const tr = g('cw-rx-trigger'); if (tr) rx.triggerDetail = tr.value;
+    const ru = g('cw-rx-rules');   if (ru) rx.rules = ru.value;
+    rx.params = rx.params || {};
+    const map = { 'cw-rx-bedtime':'bedtime','cw-rx-minDur':'minDur','cw-rx-wake':'wake','cw-rx-med':'med','cw-rx-dose':'dose','cw-rx-prompt':'prompt','cw-rx-exercise':'exercise','cw-rx-reps':'reps' };
+    Object.entries(map).forEach(([id,key]) => { const el = g(id); if (el) rx.params[key] = el.value; });
   }
   function txDataPane() {
     const t = nav.txDataTab;
@@ -1214,23 +1353,13 @@
           </div>`).join('')}
       </div>`;
     }
-    if (t === 'coach') {
-      const coach = S.activity.filter(a => a.type === 'coach');
-      if (!coach.length) return '<div class="dim small" style="padding:10px">No Coach AI activity. Events appear when Chen starts a new conversation, or returns to an existing one after a quiet gap.</div>';
-      return coach.map(a => `
-        <div class="event-row">
-          <div class="ev-ic" style="background:#EDE9FE;color:#6D28D9"><i data-lucide="sparkles"></i></div>
-          <div class="body"><div class="t">${esc(a.title)}</div><div class="m tiny">${esc(a.meta||'')}</div></div>
-          <div class="dim tiny">${esc(a.t)}</div>
-        </div>`).join('');
-    }
     return '';
   }
   function cloneVersion(v) {
-    return { rxs: S.txPlan.versions[v].rxs.map(r => ({...r})) };
+    return { rxs: S.goals.versions[v].rxs.map(r => ({...r, params: r.params ? {...r.params} : {}})) };
   }
   function suggestedRxCard() {
-    if (S.txPlan.draft?.rejectedSuggestion) return '';
+    if (S.goals.draft?.rejectedSuggestion) return '';
     return `
       <div class="rx-card suggested">
         <div class="head"><div class="type"><i data-lucide="sparkles"></i> Suggested prescription</div><div class="tiny" style="color:var(--purple)">Based on biopsychosocial framework</div></div>
@@ -1245,7 +1374,7 @@
     const max = Math.max(...S.compliance.sparkline);
     return shell([{label:esc(S.patient.name),go:'patient'},{label:'Compliance & progress'}], `
       <h2 style="margin:0 0 4px">Compliance & progress</h2>
-      <div class="small muted" style="margin-bottom:14px">How Chen is tracking against her treatment plan</div>
+      <div class="small muted" style="margin-bottom:14px">How Chen is tracking against her goals</div>
       <div class="card cw-vis-toggle" style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
         <div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="${S.compliance.visibleToPatient?'eye':'eye-off'}"></i></div>
         <div style="flex:1">
@@ -1268,22 +1397,143 @@
     `);
   }
 
+  /* ---------- Data point modals ---------- */
+  function sessionDataPoints(id) { return (S.dataPoints || []).filter(d => d.sessionId === id); }
+
+  function dpReviewCard(d, approved) {
+    return `
+      <div class="dp-review-card ${approved?'approved':''}">
+        <div class="dp-card-head">
+          <div class="row gap-2" style="align-items:center"><span class="bps-pill">BPS</span><span class="dp-refdate"><i data-lucide="calendar"></i> ${esc(d.referenceDate)}</span></div>
+          <span class="dp-collected">Collected ${esc(d.collectedAt)}</span>
+        </div>
+        <div class="dp-prompt"><i data-lucide="message-circle"></i> ${esc(d.prompt)}</div>
+        <div class="dp-answer">${esc(d.answer)}</div>
+        <div class="dp-actions ${approved?'approved':''}">
+          ${approved ? `
+            <span class="chip green"><i data-lucide="check"></i> Approved</span>
+            <div class="row gap-2">
+              <button class="btn sm" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button>
+              <button class="btn sm" data-cw-action="dp-undo" data-id="${d.id}"><i data-lucide="rotate-ccw"></i> Undo</button>
+            </div>
+          ` : `
+            <button class="btn sm" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button>
+            <button class="btn sm danger" data-cw-action="dp-dismiss" data-id="${d.id}"><i data-lucide="x"></i> Deny</button>
+            <button class="btn sm primary" data-cw-action="dp-approve" data-id="${d.id}"><i data-lucide="check"></i> Approve</button>
+          `}
+        </div>
+      </div>`;
+  }
+
+  function dpModal() {
+    const m = nav.dpModal;
+    if (!m) return '';
+    const s = S.sessions.find(x => x.id === (m.sessionId || nav.sessionId)) || S.sessions[S.sessions.length-1];
+    if (m.kind === 'read') {
+      const d = (S.dataPoints||[]).find(x => x.id === m.id);
+      if (!d) return '';
+      const sNum = d.sessionId ? (S.sessions.find(x => x.id === d.sessionId)?.num) : null;
+      const approved = d.status === 'approved';
+      return `
+      <div class="rx-modal-overlay" data-cw-action="dp-cancel">
+        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:480px">
+          <div class="rx-modal-hdr">
+            <div><div class="rx-modal-title">Data point</div></div>
+            <button class="rx-modal-close" data-cw-action="dp-cancel"><i data-lucide="x"></i></button>
+          </div>
+          <div class="rx-modal-body">
+            <div class="dp-read">
+              <div class="dp-read-meta">
+                <div class="row gap-2" style="align-items:center"><span class="bps-pill">BPS</span><span class="dp-refdate"><i data-lucide="calendar"></i> ${esc(d.referenceDate)}</span></div>
+                <span class="chip ${approved?'green':'amber'}">${approved?'Approved':'Pending'}</span>
+              </div>
+              <div class="dp-read-block"><div class="dp-read-lbl">PROMPT</div><div class="dp-read-prompt">${esc(d.prompt)}</div></div>
+              <div class="dp-read-block"><div class="dp-read-lbl">ANSWER</div><div class="dp-read-answer">${esc(d.answer)}</div></div>
+              <div class="dp-collected-box">Collected automatically · ${esc(d.collectedAt)}${sNum?` · from Session #${sNum}`:''}</div>
+            </div>
+          </div>
+          <div class="rx-modal-ftr"><div></div><div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Close</button><button class="btn sm primary" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button></div></div>
+        </div>
+      </div>`;
+    }
+    if (m.kind === 'add' || m.kind === 'edit') {
+      const editing = m.kind === 'edit';
+      const d = editing ? (S.dataPoints||[]).find(x => x.id === m.id) : null;
+      const sNum = d && d.sessionId ? (S.sessions.find(x => x.id === d.sessionId)?.num) : null;
+      const va = (s) => editing ? ` value="${esc(s)}"` : '';
+      const cancelAction = editing ? 'dp-edit-cancel' : 'dp-cancel';
+      return `
+      <div class="rx-modal-overlay" data-cw-action="${cancelAction}">
+        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:480px">
+          <div class="rx-modal-hdr">
+            <div><div class="rx-modal-title">${editing?'Edit data point':'Add data point'}</div><div class="rx-modal-sub">${editing?'Edit this biopsychosocial point. Text only in the POC.':'A biopsychosocial question and Chen\'s answer. Text only in the POC.'}</div></div>
+            <button class="rx-modal-close" data-cw-action="${cancelAction}"><i data-lucide="x"></i></button>
+          </div>
+          <div class="rx-modal-body">
+            <div class="rx-field"><label>Prompt</label><input id="cw-dp-prompt" type="text" placeholder="e.g. How has your sleep been over the past two weeks?"${va(d?.prompt)} /></div>
+            <div class="rx-field"><label>Answer</label><textarea id="cw-dp-answer" rows="3" placeholder="Chen's answer to this question…">${editing?esc(d?.answer):''}</textarea></div>
+            <div class="rx-field"><label>Reference date</label><input id="cw-dp-refdate" type="text" placeholder="e.g. 2014, or “June 2019”"${va(d?.referenceDate)} /></div>
+            <div class="dp-help">The date or period this answer is about (e.g. a childhood event). When it was captured is recorded automatically.</div>
+            ${editing ? `<div class="dp-collected-box">Collected automatically · ${esc(d?.collectedAt)}${sNum?` · from Session #${sNum}`:''}</div>` : ''}
+          </div>
+          <div class="rx-modal-ftr"><div></div><div class="row gap-2"><button class="btn sm" data-cw-action="${cancelAction}">Cancel</button>${editing
+            ? `<button class="btn sm primary" data-cw-action="dp-save-edit" data-id="${m.id}"><i data-lucide="check"></i> Save changes</button>`
+            : `<button class="btn sm primary" data-cw-action="dp-save"><i data-lucide="check"></i> Add data point</button>`}</div></div>
+        </div>
+      </div>`;
+    }
+    const dps = sessionDataPoints(s.id);
+    const pending = dps.filter(d => d.status === 'pending');
+    const approved = dps.filter(d => d.status === 'approved');
+    return `
+      <div class="rx-modal-overlay" data-cw-action="dp-cancel">
+        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:600px">
+          <div class="rx-modal-hdr">
+            <div><div class="rx-modal-title">Review data points · Session #${s.num}</div><div class="rx-modal-sub">Approve, edit, or deny the biopsychosocial points captured this session.</div></div>
+            <button class="rx-modal-close" data-cw-action="dp-cancel"><i data-lucide="x"></i></button>
+          </div>
+          <div class="rx-modal-body">
+            <div class="dp-help-banner"><span class="dp-help-q">?</span><div><div class="dp-help-title">Don't see a data point?</div><div class="dp-help-text">Tend only extracts answers that clearly match a biopsychosocial prompt — if something wasn't a clear hit, it won't appear here. You can always add it manually.</div></div></div>
+            ${pending.length ? `<div class="rx-modal-sec-lbl">PENDING REVIEW (${pending.length})</div>
+            ${pending.map(d => dpReviewCard(d, false)).join('')}` : '<div class="small muted" style="padding:6px 0 10px">No pending data points — all points have been reviewed.</div>'}
+            ${approved.length ? `<div class="rx-modal-sec-lbl" style="margin-top:14px">APPROVED (${approved.length})</div>
+            ${approved.map(d => dpReviewCard(d, true)).join('')}` : ''}
+          </div>
+          <div class="rx-modal-ftr">
+            <button class="btn sm" data-cw-action="dp-add-from-extract"><i data-lucide="plus"></i> Add manually</button>
+            <div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Close</button>${pending.length?`<button class="btn sm primary" data-cw-action="dp-done"><i data-lucide="check"></i> Approve all pending</button>`:''}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   /* ---------- Session summary ---------- */
   function session() {
     const s = S.sessions.find(x => x.id === nav.sessionId) || S.sessions[S.sessions.length-1];
     const stages = s.stages;
-    const allDone = stages.raw && stages.note && stages.assessment && stages.plan;
-    const stageOrder = ['raw','note','assessment','plan'];
+    const allDone = stages.raw && stages.note; // data points are not a required stage
+    const stageOrder = ['raw','note'];
     const nextUpStage = stageOrder.find(k => !stages[k]);
     const idx = S.sessions.findIndex(x => x.id === s.id);
     const prev = idx > 0 ? S.sessions[idx-1] : null;
     const next = idx < S.sessions.length - 1 ? S.sessions[idx+1] : null;
+    const dps = sessionDataPoints(s.id);
+    const pendingDp = dps.filter(d => d.status === 'pending');
+    const approvedDp = dps.filter(d => d.status === 'approved');
+    const wlpV = s.wholeLifePlanVersion || S.wholeLifePlan.currentVersion;
+    const goalsV = parseInt(String(s.planVersion||('v'+S.goals.currentVersion)).replace('v',''));
+    const goalRxs = (S.goals.versions[goalsV] || {}).rxs || [];
+    const aV = s.assessmentVersion || S.assessment.currentVersion;
+    const aBody = S.assessment.versions[aV];
+    const aCur = aV === S.assessment.currentVersion;
     return shell([{label:esc(S.patient.name),go:'patient'},{label:`Session #${s.num}`}], `
+      <div class="session-layout">
+        <div class="session-main">
       <div class="card" style="margin-bottom:12px">
         <div class="row between">
           <div><h2 style="margin:0">Session #${s.num} ${allDone?'<span class="chip green"><i data-lucide="check"></i> Complete</span>':'<span class="chip amber">In progress</span>'}</h2>
             <div class="small muted" style="margin-top:4px">${esc(s.date)}, 14:00 · ${esc(s.duration)} · Imported from ${esc(s.src)}</div></div>
-          <div class="row gap-2">
+          <div class="row gap-2" style="align-items:flex-start">
             ${allDone ? `
               <div style="position:relative">
                 <button class="btn sm" data-cw-action="toggle-export-menu"><i data-lucide="download"></i> Export to EMR <i data-lucide="chevron-down"></i></button>
@@ -1300,28 +1550,24 @@
                     </div>
                     <div style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:600;padding:8px 10px;border-radius:8px;margin-top:6px">COMMING SOON</div>
                   </div>` : ''}
-              </div>
-              <button class="btn sm"><i data-lucide="refresh-cw"></i> Reopen</button>`
-              : (() => {
-                  const order = ['raw','note','assessment','plan'];
-                  const nextUp = order.find(k => !stages[k]);
-                  const chip = (k, label) => {
-                    const state = stages[k] ? 'complete' : (k === nextUp ? 'current' : 'open');
-                    const ico = state === 'complete' ? 'check' : (state === 'current' ? 'circle-dashed' : 'circle');
-                    const interactive = k !== 'raw' ? `data-cw-action="open-stage" data-st="${k}"` : '';
-                    return `<div class="stage-chip ${state}" ${interactive}><i data-lucide="${ico}"></i> ${label}</div>`;
-                  };
-                  return `<div class="stages-card" style="width:auto;display:flex;gap:6px">
-                    ${chip('raw','Raw data')}
-                    ${chip('note','Note')}
-                    ${chip('assessment','Assessment')}
-                    ${chip('plan','Treatment plan')}
-                  </div>`;
-                })()}
+              </div>` : ''}
+            ${(() => {
+                const chip = (k, label) => {
+                  const state = stages[k] ? 'complete' : (k === nextUpStage ? 'current' : 'open');
+                  const ico = state === 'complete' ? 'check' : (state === 'current' ? 'circle-dashed' : 'circle');
+                  const interactive = k === 'note' ? `data-cw-action="open-stage" data-st="note"` : '';
+                  return `<div class="stage-chip ${state}" ${interactive}><i data-lucide="${ico}"></i> ${label}</div>`;
+                };
+                return `<div class="stages-card" style="width:auto;display:flex;gap:6px">
+                  ${chip('raw','Raw data')}
+                  ${chip('note','Note')}
+                  <div class="stage-chip neutral" data-cw-action="open-dp-extract" title="Data points are optional — review anytime"><i data-lucide="list-checks"></i> Data points</div>
+                </div>`;
+              })()}
           </div>
         </div>
       </div>
-      <div class="split">
+      <div class="session-split">
         <div>
           ${stages.note ? `
           <div class="card" style="margin-bottom:12px">
@@ -1341,24 +1587,22 @@
             <div class="small muted" style="margin-top:6px;line-height:1.5">Not yet drafted.</div>
           </div>
           `)}
-          ${stages.plan ? `
+          <div class="card" style="margin-bottom:12px">
+            <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Treatment plan · v${wlpV} <span class="chip gray">reference</span></h3><button class="btn sm" data-cw-go="wholeLifePlan">Open</button></div>
+            ${(() => {
+              const ver = S.wholeLifePlan.versions[wlpV] || {};
+              const objs = ver.objectives || {};
+              const cats = S.wholeLifePlan.categories.filter(c => objs[c]).slice(0,3);
+              if (!cats.length) return '<div class="small muted" style="line-height:1.5">No objectives set for this version.</div>';
+              return cats.map(c => `<div style="margin-top:10px"><div class="kicker" style="color:#0F766E;letter-spacing:0.5px">${esc(c).toUpperCase()}</div><div class="small" style="margin-top:2px;line-height:1.5">${esc(objs[c])}</div></div>`).join('')
+                + `<div class="dim tiny" style="margin-top:10px">${esc(ver.authoredBy||'Shari Kaplan')} · v${wlpV} · ${esc(ver.date||'')}</div>`;
+            })()}
+          </div>
           <div class="card">
-            <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Treatment plan · ${esc(s.planVersion)}</h3><button class="btn sm" data-cw-go="txPlan">Open builder</button></div>
-            ${S.txPlan.versions[parseInt(s.planVersion.replace('v',''))].rxs.slice(0,3).map(r => `
+            <div class="panel-head"><h3><i data-lucide="target"></i> Goals · ${esc(s.planVersion)} <span class="chip gray">reference</span></h3><button class="btn sm" data-cw-go="goals">Open</button></div>
+            ${goalRxs.slice(0,3).map(r => `
               <div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line-2)"><div class="small">${esc(r.title)}</div><div class="dim tiny">${esc(r.trigger)}</div></div>`).join('')}
           </div>
-          ` : (nextUpStage === 'plan' ? `
-          <div class="card" style="background:var(--warning-soft);border-color:#fcd34d">
-            <div class="row gap-2"><div class="bold"><i data-lucide="circle-dashed"></i> Treatment plan pending</div></div>
-            <div class="small" style="margin:6px 0 10px;line-height:1.5">Build the treatment plan — pick prescriptions and parameters based on this session's assessment.</div>
-            <button class="btn sm" style="background:#d97706;color:white;border-color:#d97706" data-cw-go="txPlan">Open builder <i data-lucide="arrow-right"></i></button>
-          </div>
-          ` : `
-          <div class="card">
-            <div class="row gap-2 muted"><div class="bold small"><i data-lucide="circle"></i> Treatment plan</div></div>
-            <div class="small muted" style="margin-top:6px;line-height:1.5">Available once the assessment is complete.</div>
-          </div>
-          `)}
         </div>
         <div>
           ${stages.raw ? `
@@ -1379,37 +1623,36 @@
             <div class="small muted" style="margin-top:6px;line-height:1.5">Not yet uploaded.</div>
           </div>
           `)}
-          ${stages.assessment ? `
-            ${(() => {
-              const sav = s.assessmentVersion || S.assessment.currentVersion;
-              const sa = S.assessment.versions[sav];
-              const isCur = sav === S.assessment.currentVersion;
-              return `<div class="card"><div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Assessment <span class="chip ${isCur?'green':'gray'}"><i data-lucide="check"></i> v${sav}${isCur?'':' · at this session'}</span></h3><button class="btn sm" data-cw-action="open-session-assess">Open</button></div>
-              <div class="small" style="line-height:1.5">${esc((sa?.body?.psychological||'')).slice(0,180)}…</div>
-              <div class="dim tiny" style="margin-top:6px">${esc(sa?.authoredBy||'Shari Kaplan')} · ${esc(sa?.date||'')}</div></div>`;
-            })()}
-          ` : (nextUpStage === 'assessment' ? `
-            <div class="card" style="background:var(--warning-soft);border-color:#fcd34d">
-              <div class="row gap-2"><div class="bold"><i data-lucide="circle-dashed"></i> Assessment pending</div></div>
-              <div class="small" style="margin:6px 0 10px;line-height:1.5">Pick up the cumulative assessment for Chen — areas to track this cycle remain open.</div>
-              <button class="btn sm" style="background:#d97706;color:white;border-color:#d97706" data-cw-go="assessment">Open assessment <i data-lucide="arrow-right"></i></button>
-            </div>
+          ${!stages.note ? `
+          <div class="card" style="margin-bottom:12px">
+            <div class="row gap-2 muted"><div class="bold small"><i data-lucide="circle"></i> Data points</div></div>
+            <div class="small muted" style="margin-top:6px;line-height:1.5">Available once the note is complete.</div>
+          </div>
           ` : `
-            <div class="card">
-              <div class="row gap-2 muted"><div class="bold small"><i data-lucide="circle"></i> Assessment</div></div>
-              <div class="small muted" style="margin-top:6px;line-height:1.5">Available once the note is complete.</div>
-            </div>
-          `)}
+          <div class="card" style="margin-bottom:12px">
+            <div class="panel-head"><h3><i data-lucide="list-checks"></i> Data points <span class="chip gray">${approvedDp.length} approved</span>${pendingDp.length?` <span class="chip amber">${pendingDp.length} pending approval</span>`:''}</h3><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add</button></div>
+            <div class="small muted" style="line-height:1.5;margin-bottom:8px">Approved biopsychosocial points for this session. Reviewing is optional — open review to approve, edit, or add your own.</div>
+            ${approvedDp.length ? approvedDp.map(d => `<div class="row between" data-cw-action="dp-open" data-id="${d.id}" style="padding:8px 0;border-bottom:1px solid var(--line-2);align-items:center;cursor:pointer"><div class="small" style="flex:1;padding-right:10px">${esc(d.prompt)}</div><i data-lucide="chevron-right" style="width:15px;height:15px;color:#94a3b8"></i></div>`).join('') : '<div class="small muted">No approved data points yet.</div>'}
+            <div class="row gap-2" style="margin-top:10px"><button class="btn sm primary" data-cw-action="open-dp-extract">Review data points <i data-lucide="arrow-right"></i></button><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add manually</button></div>
+          </div>
+          `}
+          <div class="card">
+            <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Assessment <span class="chip ${aCur?'green':'gray'}">v${aV}${aCur?'':' · at this session'}</span></h3><button class="btn sm" data-cw-action="open-session-assess">Open</button></div>
+            <div class="small" style="line-height:1.5">${esc((aBody?.body||'')).slice(0,180)}…</div>
+            <div class="dim tiny" style="margin-top:6px">${esc(aBody?.authoredBy||'Shari Kaplan')} · ${esc(aBody?.date||'')}</div>
+          </div>
         </div>
       </div>
-      <div class="row between" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)">
-        <button class="btn sm" ${prev?`data-cw-action="open-session" data-id="${prev.id}"`:'disabled'}><i data-lucide="chevron-left"></i> ${prev?`#${prev.num} · ${esc(prev.date)}`:''}</button>
-        <div class="dim small">▮▮▮▮▮▮▮▮▮▮▮▮</div>
-        <button class="btn sm dark" ${next?`data-cw-action="open-session" data-id="${next.id}"`:'data-cw-go="upload"'}>${next?`${next.id==='s13'?'#'+next.num+' · '+esc(next.date):'#'+next.num+' · '+esc(next.date)}`:'Start #'+((S.sessions[S.sessions.length-1]?.num || 12)+1)} <i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="session-timeline">
+          <button class="btn sm" ${prev?`data-cw-action="open-session" data-id="${prev.id}"`:'disabled'}><i data-lucide="chevron-left"></i> ${prev?`#${prev.num} · ${esc(prev.date)}`:'Previous'}</button>
+          <div class="session-timeline-strip">${S.sessions.map(x => `<span class="dot ${x.id===s.id?'on':''}" title="#${x.num} · ${esc(x.date)}"></span>`).join('')}</div>
+          <button class="btn sm dark" ${next?`data-cw-action="open-session" data-id="${next.id}"`:'data-cw-go="upload"'}>${next?`#${next.num} · ${esc(next.date)}`:'Start #'+((S.sessions[S.sessions.length-1]?.num || 12)+1)} <i data-lucide="chevron-right"></i></button>
+        </div>
       </div>
+      ${dpModal()}
     `);
   }
-
   /* ---------- Browser-chrome history ---------- */
   const histStack = [];
   let histIdx = -1;
@@ -1426,7 +1669,8 @@
       case 'session':      return `tend.health/patients/chen-v/sessions/${sess()}`;
       case 'note':         return `tend.health/patients/chen-v/sessions/${sess()}/note`;
       case 'assessment':   return `tend.health/patients/chen-v/assessment` + (nav.assessmentVersion ? `/v${nav.assessmentVersion}` : '');
-      case 'txPlan':       return `tend.health/patients/chen-v/treatment-plan`;
+      case 'goals':       return `tend.health/patients/chen-v/goals`;
+      case 'wholeLifePlan': return `tend.health/patients/chen-v/treatment-plan`;
       case 'compliance':   return `tend.health/patients/chen-v/compliance`;
       case 'upload':       return `tend.health/patients/chen-v/upload`;
       case 'messaging':    return `tend.health/patients/chen-v/messages`;
@@ -1579,7 +1823,8 @@
     else if (nav.screen === 'upload')   html = upload();
     else if (nav.screen === 'note')     html = noteEditor();
     else if (nav.screen === 'assessment') html = assessment();
-    else if (nav.screen === 'txPlan')   html = txPlan();
+    else if (nav.screen === 'goals')   html = goals();
+    else if (nav.screen === 'wholeLifePlan') html = wholeLifePlan();
     else if (nav.screen === 'compliance') html = compliance();
     else if (nav.screen === 'session')  html = session();
     else if (nav.screen === 'addPatient') html = addPatientScreen();
@@ -1676,6 +1921,8 @@
     });
     r.querySelectorAll('[data-cw-assess-tab]').forEach(b => b.onclick = () => { nav.assessDataTab = b.dataset.cwAssessTab; render(); });
     r.querySelectorAll('[data-cw-tx-tab]').forEach(b => b.onclick = () => { nav.txDataTab = b.dataset.cwTxTab; render(); });
+    r.querySelectorAll('[data-cw-wlp-tab]').forEach(b => b.onclick = () => { nav.wlpDataTab = b.dataset.cwWlpTab; render(); });
+    r.querySelectorAll('[data-cw-ptab]').forEach(b => b.onclick = () => { nav.profileTab = b.dataset.cwPtab; render(); });
     r.querySelectorAll('[data-cw-evt]').forEach(b => b.onclick = () => {
       const id = b.dataset.cwEvt;
       const a = S.activity.find(x => x.id === id); if (!a) return;
@@ -1923,22 +2170,20 @@
           nav.screen = 'session';
           render();
         } else {
-          notify('Note saved · advancing to assessment');
-          nav.assessmentOrigin = 'session';
-          nav.screen = 'assessment'; render();
+          notify('Note saved · review data points');
+          nav.screen = 'session';
+          nav.dpModal = { kind:'extract', sessionId: nav.sessionId };
+          render();
         }
       }
       if (a === 'assess-save') {
         const newV = S.assessment.currentVersion + 1;
         const cur = S.assessment.versions[S.assessment.currentVersion];
-        S.assessment.versions[newV] = { date:'Today', sessionId:nav.sessionId, authoredBy:S.clinician.name, body:{
-          biological: document.getElementById('cw-a-biological').value,
-          psychological: document.getElementById('cw-a-psychological').value,
-          social: document.getElementById('cw-a-social').value,
-        }};
+        S.assessment.versions[newV] = { date:'Today', sessionId:nav.sessionId, authoredBy:S.clinician.name,
+          body: (document.getElementById('cw-a-body')?.value ?? cur.body) };
         S.assessment.currentVersion = newV;
         const s = S.sessions.find(x => x.id === nav.sessionId);
-        if (s) { s.stages.assessment = true; s.assessmentVersion = newV; }
+        if (s) { s.assessmentVersion = newV; }
         notify('Assessment v'+newV+' saved');
         nav.screen = nav.assessmentOrigin === 'patient' ? 'patient' : 'session';
         render();
@@ -1951,25 +2196,25 @@
         render();
       }
       if (a === 'tx-accept-sug') {
-        S.txPlan.draft.rxs.push({ id:uid('rx'), type:'exercise', title:'Evening wind-down — no screens after 21:30', trigger:'Time · Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.' });
-        S.txPlan.draft.rejectedSuggestion = true;
+        S.goals.draft.rxs.push({ id:uid('rx'), type:'exercise', title:'Evening wind-down — no screens after 21:30', trigger:'Time · Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.' });
+        S.goals.draft.rejectedSuggestion = true;
         notify('Suggestion added to draft'); bus.emit();
       }
-      if (a === 'tx-dismiss-sug') { S.txPlan.draft.rejectedSuggestion = true; bus.emit(); }
+      if (a === 'tx-dismiss-sug') { S.goals.draft.rejectedSuggestion = true; bus.emit(); }
       if (a === 'tx-edit-sug') {
-        nav.rxModal = { mode:'add', fromSuggestion:true, rx:{ type:'exercise', title:'Evening wind-down — no screens after 21:30', triggerKind:'time', triggerDetail:'Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.' } };
+        nav.rxModal = { mode:'add', fromSuggestion:true, rx:{ type:'exercise', title:'Evening wind-down — no screens after 21:30', triggerKind:'time', triggerDetail:'Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.', params:{ exercise:'Evening wind-down — no screens after 21:30' } } };
         render();
       }
       if (a === 'tx-add') {
-        nav.rxModal = { mode:'add', rx:{ type:null, title:'', triggerKind:'time', triggerDetail:'', rules:'' } };
+        nav.rxModal = { mode:'add', rx:{ type:null, title:'', triggerKind:'time', triggerDetail:'', rules:'', params:{} } };
         render();
       }
       if (a === 'tx-edit') {
-        const rx = S.txPlan.draft.rxs.find(x => x.id === b.dataset.id);
+        const rx = S.goals.draft.rxs.find(x => x.id === b.dataset.id);
         if (rx) {
           const isSituation = /condition|situation|when |if /i.test(rx.trigger||'');
           const detail = (rx.trigger||'').replace(/^(Time|Condition|Situation)\s*·\s*/i, '');
-          nav.rxModal = { mode:'edit', rx:{ id:rx.id, type:rx.type, title:rx.title||'', triggerKind:isSituation?'situation':'time', triggerDetail:detail, rules:rx.rules||'', cta:rx.cta } };
+          nav.rxModal = { mode:'edit', rx:{ id:rx.id, type:rx.type, title:rx.title||'', triggerKind:isSituation?'situation':'time', triggerDetail:detail, rules:rx.rules||'', cta:rx.cta, params: rx.params ? {...rx.params} : {} } };
           render();
         }
       }
@@ -1989,13 +2234,14 @@
         const rx = nav.rxModal.rx;
         if (!rx.type) return;
         const trigStr = (rx.triggerKind==='situation'?'Condition · ':'Time · ') + (rx.triggerDetail||'');
+        const title = rxComposeTitle(rx);
         if (nav.rxModal.mode === 'add') {
-          S.txPlan.draft.rxs.push({ id:uid('rx'), type:rx.type, title:rx.title||'(untitled)', trigger:trigStr, rules:rx.rules });
-          if (nav.rxModal.fromSuggestion) S.txPlan.draft.rejectedSuggestion = true;
+          S.goals.draft.rxs.push({ id:uid('rx'), type:rx.type, title, trigger:trigStr, rules:rx.rules, params:rx.params });
+          if (nav.rxModal.fromSuggestion) S.goals.draft.rejectedSuggestion = true;
           notify('Prescription added to draft');
         } else {
-          const ex = S.txPlan.draft.rxs.find(x => x.id === rx.id);
-          if (ex) { ex.title = rx.title; ex.trigger = trigStr; ex.rules = rx.rules; }
+          const ex = S.goals.draft.rxs.find(x => x.id === rx.id);
+          if (ex) { ex.title = title; ex.trigger = trigStr; ex.rules = rx.rules; ex.params = rx.params; }
           notify('Prescription updated');
         }
         nav.rxModal = null;
@@ -2004,22 +2250,39 @@
       if (a === 'rx-remove') {
         const id = nav.rxModal?.rx?.id;
         if (id) {
-          S.txPlan.draft.rxs = S.txPlan.draft.rxs.filter(x => x.id !== id);
+          S.goals.draft.rxs = S.goals.draft.rxs.filter(x => x.id !== id);
           notify('Prescription removed');
         }
         nav.rxModal = null;
         render();
       }
-      if (a === 'tx-discard') { S.txPlan.draft = null; nav.screen = 'patient'; render(); }
-      if (a === 'tx-publish') {
-        const newV = S.txPlan.currentVersion + 1;
-        S.txPlan.versions[newV] = S.txPlan.draft;
-        S.txPlan.currentVersion = newV;
-        S.txPlan.draft = null;
-        const s = S.sessions.find(x => x.id === nav.sessionId) || S.sessions[S.sessions.length-1];
-        if (s) { s.stages.plan = true; s.planVersion = 'v'+newV; }
-        addActivity({ type:'system', t:'now', title:`Treatment plan published · v${newV}`, meta:'Chen will see the updated plan on next launch.' });
+      if (a === 'wlp-discard') { nav.wlpDraft = null; nav.screen = 'patient'; render(); }
+      if (a === 'wlp-page') {
+        S.wholeLifePlan.categories.forEach((c,i) => { const el = document.getElementById('cw-wlp-'+i); if (el && nav.wlpDraft) nav.wlpDraft.objectives[c] = el.value; });
+        nav.wlpPage = parseInt(b.dataset.page,10);
+        render();
+      }
+      if (a === 'wlp-publish') {
+        const newV = S.wholeLifePlan.currentVersion + 1;
+        const obj = {};
+        S.wholeLifePlan.categories.forEach((c,i) => { const el = document.getElementById('cw-wlp-'+i); obj[c] = el ? el.value : (nav.wlpDraft?.objectives[c]||''); });
+        S.wholeLifePlan.versions[newV] = { date:'Today', authoredBy:S.clinician.name, objectives: obj };
+        S.wholeLifePlan.currentVersion = newV;
+        nav.wlpDraft = null;
+        addActivity({ type:'system', t:'now', title:`Treatment plan published · v${newV}`, meta:'Chen will see the updated treatment plan on next launch.' });
         notify('Treatment plan v'+newV+' published');
+        nav.screen = 'patient'; render();
+      }
+      if (a === 'tx-discard') { S.goals.draft = null; nav.screen = 'patient'; render(); }
+      if (a === 'tx-publish') {
+        const newV = S.goals.currentVersion + 1;
+        S.goals.versions[newV] = S.goals.draft;
+        S.goals.currentVersion = newV;
+        S.goals.draft = null;
+        const s = S.sessions.find(x => x.id === nav.sessionId) || S.sessions[S.sessions.length-1];
+        if (s) { s.planVersion = 'v'+newV; }
+        addActivity({ type:'system', t:'now', title:`Goals published · v${newV}`, meta:'Chen will see the updated goals on next launch.' });
+        notify('Goals v'+newV+' published');
         nav.screen = 'patient'; render();
       }
       if (a === 'open-session-assess') {
@@ -2031,9 +2294,75 @@
       if (a === 'open-stage') {
         const st = b.dataset.st;
         if (st==='note') nav.screen='note';
-        if (st==='assessment') { nav.assessmentOrigin = nav.screen; nav.screen='assessment'; }
-        if (st==='plan') nav.screen='txPlan';
         render();
+      }
+      if (a === 'open-dp-extract') { nav.dpModal = { kind:'extract', sessionId: nav.sessionId }; render(); }
+      if (a === 'open-dp-add') { nav.dpModal = { kind:'add', sessionId: nav.sessionId }; render(); }
+      if (a === 'dp-add-from-extract') { nav.dpModal = { kind:'add', sessionId: nav.dpModal?.sessionId ?? nav.sessionId }; render(); }
+      if (a === 'dp-cancel') { nav.dpModal = null; render(); }
+      if (a === 'dp-open') { nav.dpModal = { kind:'read', id: b.dataset.id }; render(); }
+      if (a === 'dp-edit-cancel') {
+        const rt = nav.dpModal?.returnTo;
+        const id = nav.dpModal?.id;
+        nav.dpModal = rt === 'read'
+          ? { kind:'read', id }
+          : (nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null);
+        render();
+      }
+      if (a === 'dp-edit') {
+        const dp = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        nav.dpModal = { kind:'edit', id: b.dataset.id, sessionId: nav.dpModal?.sessionId ?? dp?.sessionId ?? nav.sessionId, returnTo: nav.dpModal?.kind || 'extract' };
+        render();
+      }
+      if (a === 'dp-approve') {
+        const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        if (d) d.status = 'approved';
+        notify('Data point approved'); render();
+      }
+      if (a === 'dp-undo') {
+        const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        if (d) d.status = 'pending';
+        notify('Moved back to pending'); render();
+      }
+      if (a === 'dp-dismiss') {
+        S.dataPoints = (S.dataPoints||[]).filter(x => x.id !== b.dataset.id);
+        notify('Data point denied'); render();
+      }
+      if (a === 'dp-save') {
+        const prompt = (document.getElementById('cw-dp-prompt')?.value || '').trim();
+        const answer = (document.getElementById('cw-dp-answer')?.value || '').trim();
+        const referenceDate = (document.getElementById('cw-dp-refdate')?.value || '').trim();
+        if (prompt || answer) {
+          S.dataPoints.push({ id:uid('dp'), sessionId: nav.dpModal?.sessionId || null, prompt: prompt||'Untitled prompt', answer, referenceDate: referenceDate||'—', collectedAt:'Today', source:'manual', status:'approved' });
+          notify('Data point added');
+        }
+        nav.dpModal = nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null;
+        render();
+      }
+      if (a === 'dp-save-edit') {
+        const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        if (d) {
+          const prompt = (document.getElementById('cw-dp-prompt')?.value || '').trim();
+          const answer = (document.getElementById('cw-dp-answer')?.value || '').trim();
+          const referenceDate = (document.getElementById('cw-dp-refdate')?.value || '').trim();
+          if (prompt) d.prompt = prompt;
+          d.answer = answer;
+          if (referenceDate) d.referenceDate = referenceDate;
+          notify('Data point updated');
+        }
+        const rt = nav.dpModal?.returnTo;
+        nav.dpModal = rt === 'read'
+          ? { kind:'read', id: b.dataset.id }
+          : (nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null);
+        render();
+      }
+      if (a === 'dp-done') {
+        const sid = nav.dpModal?.sessionId;
+        (S.dataPoints||[]).filter(x => x.sessionId === sid && x.status === 'pending').forEach(x => x.status = 'approved');
+        const sess = S.sessions.find(x => x.id === sid);
+        addActivity({ type:'shared', t:'now', title:`Data points approved · Session #${sess?sess.num:''}`, meta:'Saved to Chen\'s biopsychosocial record.' });
+        notify('All pending data points approved');
+        nav.dpModal = null; render();
       }
       if (a === 'open-session') { nav.sessionId = b.dataset.id; nav.screen='session'; render(); }
       if (a === 'open-messages') { nav.screen = 'messaging'; render(); }

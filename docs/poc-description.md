@@ -4,6 +4,20 @@
 
 The MVP, same as the final product, is built for both clinicians and patients.
 
+## Background: The Clinical Workflow
+
+In the first couple of sessions, a "biopsychosocial assessment" is conducted to understand the patient. During this process, the clinician asks questions to build a comprehensive integrative understanding of the patient. These include neurological, physical, medical, developmental, psychological, familial, relational, Social, strengths and resiliency, deficits, lifestyle, sleep, and nutrition.
+
+The data (it can be plain text, images, documents, audio, video) is collected and indexed, to later be used. All throughout the therapy such arbitrary context about the patient can be added, edited, or removed.
+
+Once completed, the clinician writes an assessment, and from that creates the "whole life plan" - a comprehensive "treatment plan" that gives us the "what" of treatemnt - what are we trying to change or fix?
+
+then the routine of threapy is that in each session, "Goals" are set. A goal is an actual actionable prescription
+
+so a session generally is the raw data + the notes + data points (new).
+ssessment, treatment plan, goals are seperate from the session, however each session has a reference to the assessment, treatment plan  and goals that were active at that point in time.
+
+
 ## Summary
 
 ### MVP Features
@@ -15,24 +29,26 @@ The MVP, same as the final product, is built for both clinicians and patients.
 | Add/Edit a Patient | Clinician web | Clinicians can add new patients to the platform and edit patient details (like emergency number, email address) | |
 | tags and filters | clinician web, clinician mobile (read-only) | clinicians can tag patients and filter by tags. | |
 | Activity Alerts and Notifications | Clinician web, Clinician mbile | show alerts for new activity, some also trigger a push notification (mobile only) | no web notifications in MVP|
-| Add Sessions | Clinician mobile, Clinician web | Clinicians can add sessions they had with patients. Sessions bundle the raw notes, the assessment, and the treatment plan. | Only session transcriptions are uploaded to the session |
+| Add Sessions | Clinician mobile, Clinician web | Clinicians can add sessions they had with patients. Sessions bundle the raw data (transcription, recording), the session notes, and the data points, and reference what version of the assessment, treatment plan and goals were active at that point in time. | Only session transcriptions are uploaded to the session |
 | Automatically convert transcription to session notes | clinician web | Uploaded transcriptions are converted into predefined note templates. | |
-| Compliance mesasurment | Clinician web, clincian mobile, Patient mobile (toggleable by clinician) | Clinicians and optionally patients (togglebale by the clinician) are able to track compliance with the treatment plan in a visual way akin to stock market charts (gamification) | Only the final score is shown in the MVP, not the way it was calculated. |
-| Structured treatment plan building w/ suggestion engine | Clinician web | Clinicians can write the treatment plan in a structured way, and get suggestions based on the notes, assessment, and all historic patient data that is in the system | MVP only support a closed-set of predefined "prescription types" (e.g. "Sleep Schedule") |
+| Compliance mesasurment | Clinician web, clincian mobile, Patient mobile (toggleable by clinician) | Clinicians and optionally patients (togglebale by the clinician) are able to track compliance with the goals in a visual way akin to stock market charts (gamification) | Only the final score is shown in the MVP, not the way it was calculated. |
+| Structured Goal building w/ suggestion engine | Clinician web | Clinicians can write the goals in a structured way, and get suggestions based on the notes, assessment, and all historic patient data that is in the system | MVP only support a closed-set of predefined "prescription types" (e.g. "Sleep Schedule", see below) |
+| Structured "Whole Life Plan" (treatment plan) building w/ suggestion engine | Clinician web | Clinicians can create the comprehensive treatment plan - a collection of objectives per category. | | 
+| BIOPsychoSocial Data Points | Clinician web | The platform keeps typed and timestamped containers of arbitrary data (plain text, documents, images, audio, video) representing the context on a patient (answers to biopsychosocial prompts). They are editable and removable, and automatically extracted from notes, or manually added. Used in the biopsychosocial data collection process. | MVP has only text containers |
 | Direct Messaging | Clinician web, patient mobile |  | Clinicians can only send messages and see proper message history in the web app. Messaging is limited to simple text only. |
 | Session Note Management | Clinician web | Clinician can view and edit session notes. Notes are automatically filled-in based on the session transcription (if available) | only a "default" template is supported.|
 | Assessment Management w/ suggestion engine | Clinician web | Clinician can view and edit assessments, and get suggestions based on notes and patient's historic data. | |
-| Data retention and versioning | Clinician web | Patient data shared with the clincian, Session Notes and Direct Messages are retained. Treatment Plans and Assessments are retained and also versioned - with past versions accessible thorugh the web app | |
+| Data retention and versioning | Clinician web | Patient data shared with the clincian, Session Notes and Direct Messages are retained. Treatment Plans, Assessments, and Goals are retained and also versioned - with past versions accessible thorugh the web app | |
 | Esclation Flows | Patient mobile, Clinician web, Clinician mobile | Patient mobile will esclate events in three tiers based on data that is collected: (1) "Hard escalations" - Emergency situations that also lock the patient out of the app until manually unlocked. (2) "Soft esclations" - things the clinician should be alerted of, but aren't necessarily urgent. (3) "User-only esclations" - for situations that require user action and clinician followup (optionally), but not clinician intervention (e.g. a dysregulation was detected) | |
-| Treatment-plan-aware patient support in stress-events | patient mobile | Detection is based on the data available to the app, including biofeedback (if wearable integration available). Suport is grounded in the clinician-prescribed treatment plan or general definitions hard-coded in the app. | |
+| goal-aware patient support in stress-events | patient mobile | Detection is based on the data available to the app, including biofeedback (if wearable integration available). Suport is grounded in the clinician-prescribed goals or general definitions hard-coded in the app. | |
 | Integrations | patient mobile | Integrate with external hardware (i.e. wearbales) and 3rd party applications/services | Only a closed set of applications/services/devices will be support for integration in the MVP - and those will be for biofeedback collection only (i.e. no journaling app or calendar integration in the MVP)|
-|Patient "Daily Digest"/"Daily Chcklist" | patient mobile | A "daily checklist" based on clinician prescribed treatment plan. Intended to boost compliance | |
+|Patient "Daily Digest"/"Daily Chcklist" | patient mobile | A "daily checklist" based on clinician prescribed goals. Intended to boost compliance | |
 | Applets | Patient Mobile | Applets are small apps that live within the application and are esentailly tools for patient use - designed to support the treatment, and help patients stay compliant with it. | |
-| Journal Applet | Patient Mobile | A journaling applet that is aware of the treatment plan and prescription. | |
-| Calendar Applet | Patient Mobile | A calendar applet that is aware of the treatment plan and so can display in a calendar view all the activities (sessions, check-ins, etc.) | |
-| AI Coach | Patient Mobile | An AI assistent that is aware of the treatment plan and patient data, and so can provide true grounded support for the patient. | MVP implementation uses Delphi behind the scenes, this means privacy features won't necessarily apply to Delphi (they share all conversations with the clinician), and it might not be possible to scan this content for esclation triggers (TBD) |
+| Journal Applet | Patient Mobile | A journaling applet that is aware of the goals. | |
+| Calendar Applet | Patient Mobile | A calendar applet that is aware of the goals and so can display in a calendar view all the activities (sessions, check-ins, etc.) | |
+| AI Coach | Patient Mobile | An AI assistent that is aware of the treatment plan, goals, and patient data, and so can provide true grounded support for the patient. | MVP implementation uses Delphi behind the scenes, this means privacy features won't necessarily apply to Delphi (they share all conversations with the clinician), and it might not be possible to scan this content for esclation triggers (TBD) |
 | Granular Data Sharing Controls | Patient Mobile | the patient can choose which data points he is willing to share with the clinician. Everythign is opt-out. | If we use Delphi for the AI Coach, conversations are still shared with the clinician. |
-| Dysregulation Support | Patient Mobile | upon detection of a dysregulation, theapplication will perform a user-only escalation flow and show either a notification, or an in-app modal with suggestions on how to handle the dysregulation, ideally based on the treatment plan. |
+| Dysregulation Support | Patient Mobile | upon detection of a dysregulation, theapplication will perform a user-only escalation flow and show either a notification, or an in-app modal with suggestions on how to handle the dysregulation, ideally based on the goals of the patient. |
 
 ### NOT IN MVP, BUT ON FUTURE ROADMAP:
 
@@ -49,6 +65,7 @@ The MVP, same as the final product, is built for both clinicians and patients.
 | Integrations | Patient Mobile | Comprehensive 3rd Party application/service/device integrations to allow users to use the platform in combination with any app/service/device they already use, and to save us the cost of building them ourselves. |
 | "Build Your Own Applet" | Patient Mobile, Clinician Web | the ability to build custom applets (for example, a finance tracker) |
 | "Appluase" ("good-job" notifications) | Patient Mobile | The app will send encouraging notifications when a patient meets a goal. |
+| Freeform text -> Goals Translation | Clinician Web | allow the clinician to write patient goals in natural language, and the app will generate the structured prescriptions, so clinicians don't need to fiddle with the prescription. |
 
 ### OUT OF SCOPE FOR PRODUCT:
 
@@ -133,6 +150,7 @@ note that if there is a hard esclation flow in progress (meaning the patient app
 
 ![Clinician Mobile — Patient Profile (Alerts)](./images/clinician-mobile-patient-profile-alerts.png)
 ![Clinician Mobile — Patient Profile (App locked)](./images/clinician-mobile-patient-profile-app-locked.png)
+![Clinician Mobile — Patient profile (locked + unlock)](./images/clinician-mobile-patient-profile-locked-unlock.png)
 
 ### Push notifications
 Triggers for the MVP:
@@ -145,6 +163,31 @@ An Esclations (soft+hard+user-only).
 
 
 ## Clinician Web App
+
+### Recurring Components
+#### Data Browser/Display Componenet
+
+used in the patient profile (labeled "activity"), the goal builder and treatment plan builder (labeled "patient context"), and the assessment builder (labeled "data side").
+
+this is browseable data surface showing 4 tabs: All / Sessions (default) / Shared data / Messages.
+
+doubles as the notification history log (with an unread counter). Event types: sessions, messages, urgent notifications, data shared, Coach AI activity.
+Filterable by event type.
+Default sort: chronological.
+Tap an event to open a detail view (session detail for sessions, messaging UI for messages, etc.).
+
+"All" tab and "Shared Data" tab have a toggle for "list/timeline" view.
+
+NOTE:
+**Coach AI activity is rolled up, not per-message.** Surfacing every patient <> Coach AI message would flood the feed. Instead, an event is emitted when (a) the patient starts a **new conversation** with Coach AI, or (b) activity resumes in an **existing conversation** after a quiet gap (i.e. enough time has passed since the last message that it reads as a fresh interaction rather than a continuation). Tapping the event opens the conversation. (Incognito chats are excluded — see Coach AI.)
+
+Shared data features any data the user shares from the app. That is all data available to the app (incuding coach ai activity) minus the data the user chose not to allow sharing. 
+It also includes the "biopsychosocial data points" (they are marked with a "BPS" pill)
+
+clicking on a bps data point will open a read view modal.
+only approved data points are show in the read view modal.
+
+![Clinician Web — Data point read view](./images/clinician-web-data-point-read-view.png)
 
 ### Login
 
@@ -200,31 +243,36 @@ Also, EMR integration. Shown as connected (just so that we can show the full "ex
 ![Clinician Web — Integrations](./images/clinician-web-integrations.png)
 ![Clinician Web — Integration demo](./images/clinician-web-integration-demo.png)
 
-### Patient profile (incl. shared data view)
+### Patient profile
 Header: patient info (with an edit button - clicking leads to "patient editing" modal), **compliance score**. Tapping opens the compliance & progress view.
 
-Action buttons:
-Create / modify treatment plan
+Quick Action buttons:
+Create / modify treatment plan (the whole life plan, not the goals))
+Create / modify goals
 Upload new session
 Send a message
+add data point (opens the modal)
+
+Page is split into two:
+
+left side:
+
+Show a tab selector with "assessment", "treatment plan", "goals".
+for each tab, show the relevant data + an action button for opening the editor.
+
+right side:
+
+**Recent activity feed**: the Data Display Componenet.
+doubles as the notification history log (with an unread counter).
+
+![Clinician Web — Patient Profile (default / source view)](./images/clinician-web-patient-profile.png)
+![Clinician Web — Patient Profile Activity (variations)](./images/clinician-web-patient-profile-activity-variations.png)
+
 
 ### Patient editing modal
 edit all patient details, including the ability to toggle the patient's compliance score visibility (on/off). The toggle will be OFF by default. 
 
 ![Clinician Web — Patient editing modal](./images/clinician-web-patient-editing-modal.png)
-
-**Recent activity feed** doubles as the notification history log (with an unread counter). Event types: sessions, messages, urgent notifications, data shared, Coach AI activity.
-Filterable by event type.
-Default sort: chronological.
-Tap an event to open a detail view (session detail for sessions, messaging UI for messages, etc.).
-
-NOTE:
-**Coach AI activity is rolled up, not per-message.** Surfacing every patient <> Coach AI message would flood the feed. Instead, an event is emitted when (a) the patient starts a **new conversation** with Coach AI, or (b) activity resumes in an **existing conversation** after a quiet gap (i.e. enough time has passed since the last message that it reads as a fresh interaction rather than a continuation). Tapping the event opens the conversation. (Incognito chats are excluded — see Coach AI.)
-
-**Shared data view** — panel showing everything the patient has shared, grouped by source (integrations, Coach AI, applets, manual entries) with a timeline toggle. Filter/search supported.
-
-![Clinician Web — Patient Profile (default / source view)](./images/clinician-web-patient-profile.png)
-![Clinician Web — Patient Profile Activity (variations)](./images/clinician-web-patient-profile-activity-variations.png)
 
 ### Messaging
 Standard direct-message interface between clinician and patient.
@@ -243,8 +291,9 @@ Each option creates a **new session** and routes into the note editor (template 
 Every session moves through:
 Raw data uploaded
 Note
-Assessment
-Treatment plan
+New Data points from session.
+
+And the assessment, treatment plan, and goals that are currently active for the patient (most recent), are linked as a reference to the session.
 
 Opening a session lands on the session summary screen. Incomplete stages are surfaced there; tapping one opens the relevant editor. Behavior is identical whether the raw upload came from mobile or web.
 
@@ -252,7 +301,7 @@ Opening a session lands on the session summary screen. Incomplete stages are sur
 ![Clinician Web — Upload session (From transcription)](./images/clinician-web-upload-session-from-transcription.png)
 ![Clinician Web — Upload session (From notes only)](./images/clinician-web-upload-session-from-notes-only.png)
 
-#### Note screen
+### Note screen
 Template selector at the top. Default template: `default`. (MVP: selectbox UI exists but only one template, no creation flow.)
 Template renders a structured set of fields.
 
@@ -260,19 +309,50 @@ The page is a split view betwen the note (on the left) and the raw transcript of
 
 `default` template fields: session date, session summary,  **Subjective**, **Objective**, Assessment and Plan (One Field)
 Fields auto-fill from the raw transcription.
-**Next** advances to the assessment screen.
+**Next** goes to the session summary, and directly opens the data points modal for adding new data points and approving extracted ones.
 
 ![Clinician Web — Note screen](./images/clinician-web-note-screen.png)
 
-#### Assessment screen
+### Extracted Data Points Modal
+
+This modal is opened directly from the note screen, and allows the clinician to approve auto-suggested data points extracted from the notes, and add new data points.
+
+User can deny, approve, or edit each suggested data point. 
+
+only data points that are a hit for the biopsychosocial framework are extracted and shown.
+
+the extraction attempts to find the prompt, the answer, and a "reference date" timestamp (that is - the time that the answer refers to)
+the date the data point was collected is also metadata set by the extractor.
+
+the modal contains a button at the bottom for adding data points manually.
+You can also access this modal from the session summary screen directly.
+
+![Clinician Web — Extracted Data Points modal](./images/clinician-web-extracted-data-points-modal.png)
+
+### Adding Data Points Modal
+
+Clinician can add data points (biopsychosocial context about the patient). In the MVP these are limited to text.
+You can access this modal directly through any session summary page, and 
+This modal is also accessible directly from the patient profile (see details below for exact placement)
+A data point consists of a prompt (the biopsychosocial question that was prompted to the patient), an answer, and a "reference date" timestamp - the time the answer refers to.
+
+![Clinician Web — Add Data Point modal](./images/clinician-web-add-data-point-modal.png)
+
+Editing a data point opens the same form pre-filled. The prompt, answer, and reference date are editable; the auto-captured "collected" metadata (date + source session) is shown read-only. Cancel/close returns to wherever the edit was launched from (the read view, or the extracted/review modal), without saving.
+
+![Clinician Web — Edit Data Point modal](./images/clinician-web-edit-data-point-modal.png)
+
+
+### Assessment screen
 Purpose (see Assumptions): the clinician diagnoses, captures advanced notes (e.g. what to track / ask about next session), and receives suggestions based on Shari's biopsychosocial framework.
 
-Two-pane layout: notes ("patient context" — read only) on one side, free-text box on the other.
+Two-pane layout: notes ("patient context" — read only) on one side, unstructured free-text box on the other.
 Clinician can browse previous notes, plans, assessments, and shared data while writing. The interface for this is a tab strip at top — Sessions (default) / Shared data / Activity / Messages. It is read only.
-The assessment is **cumulative**, not per-session (see Assumptions). The most recent version is therefore visible.
-Right pane = data side: either sorted data view (categorization scheme TBD) or a timeline of data entries (shared / manual), sessions (with notes), etc. Searchable and filterable (e.g. "find sessions where topic X came up").
+This is the same data display component as the goal builder's "patient context" panel, and the activity panel in the patient profile.
 
-**Versioning.** Assessments are versioned — every time the clinician edits and saves, a new version is created. Unlike treatment plans, this versioning is **clinician-facing only**; the patient never sees the assessment.
+The assessment is **cumulative**, not per-session (see Assumptions). The most recent version is therefore visible.
+
+**Versioning.** Assessments are versioned — every time the clinician edits and saves, a new version is created. Assessments are **clinician-facing only**; the patient never sees them.
 Opening the assessment from the patient profile always lands on the **current (latest) version**.
 A version selector lets the clinician navigate back to any previous version (for audit, comparison, or recovering a deleted passage).
 When viewing an older version, the screen is clearly marked (e.g. banner: "Viewing an older version from <date>. This is no longer the current assessment.") with a one-tap shortcut back to the current version.
@@ -286,8 +366,8 @@ See open questions on assessment below.
 ![Clinician Web — Assessment (current version)](./images/clinician-web-assessment.png)
 ![Clinician Web — Assessment (older version, with banner)](./images/clinician-web-assessment-older-version.png)
 
-#### Treatment plan screen + builder
-A treatment plan is a collection of **prescriptions**. The clinician builds it by choosing prescriptions from a **closed set of prescription types** and filling in their parameters.
+### Goals screen + builder
+The goals are a collection of **prescriptions**. The clinician builds them by choosing prescriptions from a **closed set of prescription types** and filling in their parameters.
 
 Prescription types in the MVP:
 Sleep schedule (target bedtime, minimum duration, fallback rule if can't fall asleep within X, etc.)
@@ -304,19 +384,29 @@ Instructions, rules, limitations.
 The rest (structure, primary CTA, collection, and compliance calculation algorithm) is determined by the prescription type, with no manual input from the clinician.
 
 Page layout — two panes:
-**Right: data side — "patient context"** — the same browseable data surface as on the assessment screen (Sessions (default) / Shared data / Activity / Messages). Here too it is read-only.
-**Left: prescriptions side** — the plan being built. Clinician adds prescriptions by picking a type and filling in parameters.
+**Right: data side — "patient context"** — top part shows the treatment plan (the whole life plan), bottom part is the data browser component.
+**Left: prescriptions side** — the goals being defined. Clinician adds prescriptions by picking a type and filling in parameters.
 
 **Suggestion engine:** based on Shari's biopsychosocial framework, the right pane surfaces suggested prescriptions with the parameters pre-filled from the data on the left. The clinician can accept, edit, or dismiss.
 
 **editing** is also possible by clicking the dedicated edit button on each prescription, or the "edit" button in the suggestion card.
 
-See open questions on treatment plan below.
-
-![Clinician Web — Treatment Plan Builder](./images/clinician-web-treatment-plan-builder.png)
+![Clinician Web — Goals builder](./images/clinician-web-treatment-plan-builder.png)
 ![Clinician Web — Add prescription (pick type)](./images/clinician-web-add-prescription-pick-type.png)
 ![Clinician Web — Add prescription (Sleep selected)](./images/clinician-web-add-prescription-sleep-selected.png)
 ![Clinician Web — Edit prescription (Sleep)](./images/clinician-web-edit-prescription-sleep.png)
+
+
+### Treatment Plan (Whole Life Plan) builder
+The treatment plan is a collection of freetext objectives split into 14 predefined categories (see appendix below)
+
+Page layout — two panes:
+**Right: data side — "patient context"** — top part shows the most recent version of the assessment, bottom part has the same browseable data surface as on the assessment screen (Sessions (default) / Shared data / Activity / Messages). Here too it is read-only.
+**Left: prescriptions side** — the treatment plan being defined. It is made of pages, you can flip horizontally between them - left and right (with a page indicator at bottom), each with 4 categories. each category is a free text box where the clinician can write the treatment plan objective for that category.
+
+**suggestion engine** simillar to the goal builder.
+
+![Clinician Web — Whole Life Plan builder](./images/clinician-web-whole-life-plan-builder.png)
 
 ### Compliance & progress view
 Patient's compliance score over time.
@@ -330,19 +420,16 @@ Clinician can toggle whether the patient sees their own compliance & progress (p
 
 ### Session summary
 Opens when you click a session.
-If any stage is incomplete (e.g. raw uploaded, notes edited, assessment pending), shows a stages card: green = complete, white = open. orange = next up (according to the flow: raw, note, assessment, plan).
-Card is hidden when all four stages are done.
+Shows a stages card: green = complete, white = open, orange = next up (according to the flow: raw → note). Data points appears in the stages card too, but as a neutral (non-gating) chip — it's not a required stage, so it's never marked orange/next-up. The session counts as complete once raw + note are done; the stages card stays visible so the optional data points review is always reachable.
 
-Tapping an incomplete stage jumps into that editor.
-Default view: notes + treatment plan on the left, raw data (transcript + audio if available) + assessment on the right. The raw data isn't directly shown, but clicking on them opens/downloads.
+data points are always shown in sessions, but they aren’t a required stage. so they aren't highlighted even if there are pending data points for review. Only approved data points are listed in the session's data points card; pending ones are reviewed via the review modal.
+
+Tapping an incomplete stage jumps into that editor (or for the data points, opens the data points approval modal).
+Default view: notes + treatment plan + goals on the left, raw data (transcript + audio if available) + data points related to this session (approved or manually added, and show a pill here to go to the data points approval modal if there are pending data points. clicking it will open the modal where you can approve data points that were extracted from the notes this session. also show a button here to manually add data points - this will open the add data point modal, even though the approval modal also has the "add manually" button) + assessment on the right. The raw data isn't directly shown, but clicking on them opens/downloads.
 Timeline strip at the bottom for jumping between sessions, plus **Next / Previous session** buttons. Pressing **Next** on the most recent session opens the upload screen.
 
-![Clinician Web — Session summary (raw next-up)](./images/clinician-web-session-summary-raw-next-up.png)
-![Clinician Web — Session summary (note next-up)](./images/clinician-web-session-summary-note-next-up.png)
-![Clinician Web — Session summary (assessment next-up)](./images/clinician-web-session-summary-assessment-next-up.png)
-![Clinician Web — Session summary (plan next-up)](./images/clinician-web-session-summary-plan-next-up.png)
-![Clinician Web — Session summary (all stages complete)](./images/clinician-web-session-summary-all-complete.png)
-![Clinician Web — Session summary (Export to EMR menu)](./images/clinician-web-session-summary-export-to-emr-menu.png)
+![Clinician Web — Session summary (data points pending · approved + pending)](./images/clinician-web-session-summary-data-points-next-up.png)
+![Clinician Web — Session summary (all stages complete · Export to EMR)](./images/clinician-web-session-summary-all-complete.png)
 
 There is a button to export to EMR. it opens a menu with two options: 1. export plain text (for the clinician to copy and paste into an EMR) 2. send to EMR (via the integration, if it is connected.). buttons are shown but not clickable, as EMR integration is not implemented in the MVP.
 
@@ -370,21 +457,21 @@ If the patient signed up but their clinician hasn't yet completed onboarding for
 The app supports escalation and safety protocols. In certain situations, the app will become locked and the user will need to contact their clinician to unlock it. In this case the app will display a screen with a message explaining the situation.
 Certain escalation and safety flows have a different lock screen. For example — the "self-harm" screen will display three numbers: the local helpline, the clinician, and a family member.
 
-The app uses a bottom tab bar with five tabs: **Today** (default landing), **Plan**, **Applets**, **Coach**, **Me**.
+The app uses a bottom tab bar with five tabs: **Today** (default landing), **Plan** (goals), **Applets**, **Coach**, **Me**.
 
 ### Today (home)
 The default entry point of the patient app. Answers two questions at a glance: *how am I doing?* and *what do I need to do today?*
 
 The user is greeted with an appropriate time-of-day message. They can see their compliance score for the day (only if the clinician has enabled it).
 
-Below, there is a todo-list of the things that the user needs to do **today**, based on the treatment plan.
+Below, there is a todo-list of the things that the user needs to do **today**, based on the Goals.
 
 ![Patient Mobile — Today](./images/patient-mobile-today.png)
 
 ### Profile view
 The user sees their profile picture, and is greeted with a welcoming message. The name of the clinician is also presented. There is a settings section with "integrations", "data sharing", and notifications settings. There's also a legal information section with "terms of service" and "privacy policy".
 
-Before these two sections, the user is presented with the core information about him as a patient — current compliance score (clickable, leads to the compliance and progress view - only if the clinician has enabled compliance score visibility for the patient), number of sessions (not clickable, just a number).
+Before these two sections, the user is presented with the core information about him as a patient — current treatment plan (clickable, leads to the treatement plan view (whole life plan)), current compliance score (clickable, leads to the compliance and progress view - only if the clinician has enabled compliance score visibility for the patient), number of sessions (not clickable, just a number).
 
 (future: patient-facing session history — see Future / Post-MVP)
 
@@ -400,7 +487,11 @@ Access to patient data is strictly limited to authorized personnel on a need-to-
 
 ![Patient Mobile — Privacy Policy](./images/patient-mobile-privacy-policy.png)
 
+### Treatment Plan (Whole life plan) view
 
+A card for each category, populated with the relevant objective as defined by the clinician. scrollable to see all cards.
+
+![Patient Mobile — Whole Life Plan view](./images/patient-mobile-whole-life-plan.png)
 
 ### Settings: Integrations
 Many more integrations than the clinician sees: wearables, health trackers, calendars, journals, etc.
@@ -458,7 +549,7 @@ there is a trash bin where deleted entries are stored for 7 days. user can resto
 
 #### Calendar applet
 Read-only for the MVP. (future: patient-side edit — see Future / Post-MVP)
-Small scheduling view derived directly from the **current treatment plan**.
+Small scheduling view derived directly from the **current Goals**.
 
 Two views: **daily** and **weekly**.
 
@@ -483,11 +574,12 @@ Each entry corresponds to a time-based trigger on a prescription (e.g. "Be aslee
 Opens an embedded Delphi site, wrapped with our own UI (that contains things like the "incognito chat" button).
 
 MVP implements an **input proxy**:
-On session start, send Delphi a digest of who the patient is and what their treatment plan is.
+On session start, send Delphi a digest of who the patient is, their assessment, treatment plan, and goals.
+
 Every patient message is also reviewed automatically by the platform (not a human). Problematic statements trigger the escalation flow.
 
 Patient can:
-Ask questions grounded in their treatment plan (instructions, rationale, how-to).
+Ask questions grounded in their treatment plan or in their goals (instructions, rationale, how-to).
 Ask general questions.
 Choose **incognito chat** — that conversation is not shared, regardless of global sharing settings.
 
@@ -500,14 +592,13 @@ Choose **incognito chat** — that conversation is not shared, regardless of glo
 ![Patient Mobile — Coach AI (voice off, typed)](./images/patient-mobile-coach-ai-voice-off-typed.png)
 ![Patient Mobile — Coach AI (sharing off, locked)](./images/patient-mobile-coach-ai-sharing-off-locked.png)
 
-### Treatment plan view
-Read-only view of the plan the clinician built. One scrollable list of **prescription cards**, grouped by type (sleep, medication, journaling, exercise).
+### Goal View
+Read-only view of the goals the clinician defined. One scrollable list of **prescription cards**, grouped by type (sleep, medication, journaling, exercise).
 
-**Versioning.** Treatment plans are versioned — every time the clinician edits and saves, a new version is created.
-Opening the plan from the app home always lands on the **current (latest) version**.
+**Versioning.** Goals are versioned — every time the clinician edits and saves, a new version is created.
+Opening the goals from the app home always lands on the **current (latest) version**.
 A version selector lets the patient navigate back to any previous version.
 When viewing an older version, the screen is clearly marked (e.g. banner: "Viewing an older version from <date>. This is no longer active.") with a one-tap shortcut back to the current version.
-Opening the plan from a session (see the session note / session summary) deep-links to the specific version that was active at that session.
 
 Each card shows:
 The action — what the patient is supposed to do, in plain language (e.g. "Be asleep by 22:00").
@@ -521,7 +612,7 @@ The trigger is shown explicitly so the patient knows when the action applies —
 
 (future: patient annotations / questions on a specific prescription that get surfaced to the clinician — see Future / Post-MVP)
 
-![Patient Mobile — Treatment Plan](./images/patient-mobile-treatment-plan.png)
+![Patient Mobile — Goal View](./images/patient-mobile-treatment-plan.png)
 
 ### Data sharing
 Settings page with a **master switch** for sharing.
@@ -558,7 +649,7 @@ User starts asking the Coach AI inappropriate questions → system detects it wh
 
 ### Dysregulation flow (with treatment-plan reference)
 
-A series of abnormal readings from the heart rate monitor (a predefined logic for what is abnormal and counts as dysregulation) → the app looks for a course of action in the treatment plan. If one exists, the app will prompt the user to follow it (in app, or popup notification). If one does not exist, the app will send a generic help notification and push the user to contact their clinician, or talk with the Coach AI.
+A series of abnormal readings from the heart rate monitor (a predefined logic for what is abnormal and counts as dysregulation) → the app looks for a course of action in the goals. If one exists, the app will prompt the user to follow it (in app, or popup notification). If one does not exist, the app will send a generic help notification and push the user to contact their clinician, or talk with the Coach AI.
 
 This is logged in the activity list.
 
@@ -598,3 +689,21 @@ In the MVP: Keyword/phrase matching or basic logic on data
 ## Note on "alert acknowledgment"
 
 Alerts are acknowledged manually, by clicking on the alert in the web, or tapping it on mobile. this manual acknowelgement is put in place due to the importance of these alerts.
+
+
+## Appendix: The Treatment Plan ("Whole Life Plan") Categories
+
+Nutrition — food is medicine
+Exercise — type and frequency
+Music & Movement
+Meditation & Mindfulness
+self-regulation tools
+Breathwork
+Spirituality — how you inspire yourself
+Finances
+Work and Work Relationships — colleagues or schoolmates
+Fun & Hobbies — what you do for enjoyment
+Mentoring & Volunteering — giving back and inspiring others
+Relationship with Self — positive and negative beliefs
+Relationships with Others — communication, time spent, goals
+Personality — strengths and deficits
