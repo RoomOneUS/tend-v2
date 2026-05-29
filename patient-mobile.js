@@ -506,8 +506,8 @@
           <div style="font-size:22px;font-weight:700">Chen</div>
           <div style="margin-top:6px"><span class="chip green"><i data-lucide="sparkles"></i> Shari B Kaplan, LCSW · your clinician</span></div>
         </div>
-        <div class="list" style="margin:0 16px 8px">
-          <div class="row-item" data-pm-sub="whole-life-plan"><div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="clipboard-list"></i></div><div class="body"><div class="title">Treatment plan</div><div class="meta">Your Whole Life Plan · 14 categories</div></div><div><i data-lucide="chevron-right"></i></div></div>
+        <div class="list" style="margin:0 0 8px">
+          <div class="row-item" data-pm-sub="whole-life-plan"><div class="avatar sm" style="background:var(--primary-tint);color:var(--primary)"><i data-lucide="clipboard-list"></i></div><div class="body"><div class="title">Treatment plan</div><div class="meta">14 life categories</div></div><div><i data-lucide="chevron-right"></i></div></div>
         </div>
         <div style="margin:0 16px;display:grid;grid-template-columns:${S.compliance.visibleToPatient?'1fr 1fr':'1fr'};gap:8px">
           ${S.compliance.visibleToPatient ? `<div class="card" data-pm-sub="progress" style="cursor:pointer;text-align:center"><div class="big" style="color:var(--primary)">${S.compliance.value}%</div><div class="tiny muted">Avg compliance</div></div>` : ''}

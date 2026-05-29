@@ -1905,6 +1905,30 @@ select {
   padding: 12px 14px 14px;
 }
 
+/* Session summary — content scrolls; the timeline footer stays pinned (always visible). */
+.session-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.session-main { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.session-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.session-timeline {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--line-2);
+}
+.session-timeline-strip { display: flex; align-items: center; gap: 6px; }
+.session-timeline-strip .dot { width: 7px; height: 7px; border-radius: 999px; background: #cbd5e1; transition: width .15s ease; }
+.session-timeline-strip .dot.on { background: var(--primary); width: 18px; }
+
+/* Prescription modal — two-column per-type action fields */
+.rx-field-row { display: flex; gap: 10px; }
+.rx-field-row > .rx-field { flex: 1 1 0; min-width: 0; }
+
+/* Treatment-plan builder pager */
+.wlp-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 2px 2px; }
+.wlp-dots { display: flex; align-items: center; gap: 8px; }
+.wlp-dots .dot { width: 7px; height: 7px; border-radius: 999px; background: #cbd5e1; }
+.wlp-dots .dot.on { background: var(--primary); }
+
 /* Note editor — raw transcript pane */
 .transcript-turn {
   margin-bottom: 14px;

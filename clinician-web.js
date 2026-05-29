@@ -22,7 +22,9 @@
   window.cwNav = nav;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const DATA_TABS = [['all','All'],['sessions','Sessions'],['shared','Data shared'],['messages','Messages'],['coach','Coach AI']];
+  // Data Browser tabs per spec: All / Sessions / Shared data / Messages. Coach AI is NOT a tab —
+  // coach activity is rolled up as an event inside the All feed.
+  const DATA_TABS = [['all','All'],['sessions','Sessions'],['shared','Data shared'],['messages','Messages']];
 
   function dataSubToggle(tab, scope) {
     if (tab === 'all') {
@@ -66,7 +68,7 @@
           </div>
           <button class="btn sm" data-cw-go="assessment"><i data-lucide="external-link"></i> Open assessment</button>
         </div>
-        <div class="small" style="line-height:1.5;color:#0f172a">${esc(a.body.psychological).slice(0, 220)}…</div>
+        <div class="small" style="line-height:1.5;color:#0f172a">${esc(a.body).slice(0, 220)}…</div>
       </div>`;
   }
 
@@ -123,16 +125,6 @@
             <div class="dim tiny">${esc(m.at)}</div>
           </div>`).join('')}
       </div>`;
-    }
-    if (tab === 'coach') {
-      const coach = S.activity.filter(a => a.type === 'coach');
-      if (!coach.length) return '<div class="dim small" style="padding:10px">No Coach AI activity. Events appear when Chen starts a new conversation, or returns to an existing one after a quiet gap.</div>';
-      return coach.map(a => `
-        <div class="event-row" data-cw-evt="${a.id}">
-          <div class="ev-ic" style="background:#EDE9FE;color:#6D28D9"><i data-lucide="sparkles"></i></div>
-          <div class="body"><div class="t">${esc(a.title)}</div><div class="m">${esc(a.meta||'')}</div></div>
-          <div class="time">${esc(a.t)}</div>
-        </div>`).join('');
     }
     return '';
   }
@@ -736,13 +728,10 @@
         </div>
         <button class="btn primary sm" data-cw-go="assessment"><i data-lucide="clipboard-list"></i> Open assessment</button>
       </div>
-      ${['biological','psychological','social'].map(k => `
-        <div style="margin-top:14px">
-          <div class="kicker" style="color:#0F766E;letter-spacing:0.5px">${k.toUpperCase()}</div>
-          <div class="small" style="margin-top:6px;line-height:1.55">${esc(a.body[k])}</div>
-        </div>`).join('')}
+      <div class="small" style="margin-top:14px;line-height:1.6">${esc(a.body)}</div>
     `;
   }
+  // Patient-profile left pane: tab selector (Assessment / Treatment plan / Goals) over the active card.
   function profileLeftPane() {
     const tabs = [['assessment','Assessment'],['wlp','Treatment plan'],['goals','Goals']];
     const seg = `<div class="sub-seg" style="margin-bottom:14px">
@@ -760,7 +749,7 @@
     const cats = S.wholeLifePlan.categories;
     return `
       <div class="panel-head">
-        <div><h3 style="margin:0">Treatment plan</h3><div class="small muted" style="margin-top:2px">Whole Life Plan · v${v} · last edited ${esc(ver.date)}</div></div>
+        <div><h3 style="margin:0">Treatment plan</h3><div class="small muted" style="margin-top:2px">${cats.length} life categories · v${v} · last edited ${esc(ver.date)}</div></div>
         <button class="btn primary sm" data-cw-go="wholeLifePlan"><i data-lucide="clipboard-list"></i> Open builder</button>
       </div>
       ${cats.map(c => { const o = ver.objectives[c]; return `
@@ -1003,12 +992,10 @@
             </div>
             ${!isCurrent ? '<button class="btn sm"><i data-lucide="git-compare"></i> Compare with current</button>' : ''}
           </div>
-          ${['biological','psychological','social'].map(k => `
-            <div class="assess-section">
-              <div class="sl">${k}</div>
-              ${isCurrent ? `<textarea id="cw-a-${k}" style="width:100%;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5;min-height:84px;outline:none">${esc(a.body[k])}</textarea>`
-                : `<div class="body">${esc(a.body[k])}</div>`}
-            </div>`).join('')}
+          <div class="assess-section">
+            ${isCurrent ? `<textarea id="cw-a-body" style="width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.6;min-height:340px;outline:none">${esc(a.body)}</textarea>`
+              : `<div class="body" style="line-height:1.6">${esc(a.body)}</div>`}
+          </div>
         </div>
         <div class="card ${isCurrent?'scroll-card':''}">
           ${isCurrent ? `
@@ -1028,7 +1015,7 @@
               ${renderDataPane(nav.assessDataTab)}
               <div class="card" style="background:var(--purple-soft);border-color:#ddd6fe;margin-top:12px;padding:10px 12px">
                 <div class="bold small" style="color:var(--purple)"><i data-lucide="sparkles"></i> Suggested addition</div>
-                <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Pattern: phone-related avoidance pre-bed correlates with attachment-related work stressors. Consider naming this loop explicitly in the social section.</div>
+                <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Pattern: phone-related avoidance pre-bed correlates with attachment-related work stressors. Consider naming this loop explicitly in the write-up.</div>
               </div>
             </div>
           ` : `
@@ -1157,10 +1144,16 @@
     return { objectives: { ...src.objectives } };
   }
   function wholeLifePlan() {
+    const fresh = !nav.wlpDraft;
     const draft = nav.wlpDraft || cloneWlp(S.wholeLifePlan.currentVersion);
     nav.wlpDraft = draft;
+    if (fresh) nav.wlpPage = 0;
     const newV = S.wholeLifePlan.currentVersion + 1;
     const cats = S.wholeLifePlan.categories;
+    const PER_PAGE = 4;
+    const pageCount = Math.ceil(cats.length / PER_PAGE);
+    const page = Math.min(nav.wlpPage || 0, pageCount - 1);
+    const pageCats = cats.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
     return shell([{label:esc(S.patient.name),go:'patient'},{label:`Treatment plan`},{label:`DRAFT v${newV}`}], `
       <div class="tx-builder-layout">
         <div class="row between" style="margin-bottom:10px;flex:0 0 auto">
@@ -1171,19 +1164,26 @@
           <div class="card scroll-card">
             <div class="scroll-card-head">
               <div class="row between">
-                <div><h3 style="margin:0">Whole Life Plan</h3><div class="small muted">${cats.length} life categories · free-text objectives</div></div>
+                <div><h3 style="margin:0">Treatment plan</h3><div class="small muted">${cats.length} life categories · ${pageCount} pages</div></div>
+                <span class="chip gray">Page ${page+1} of ${pageCount}</span>
               </div>
             </div>
             <div class="scroll-card-body">
+              ${page === 0 ? `
               <div class="card" style="background:var(--purple-soft);border-color:#ddd6fe;margin-bottom:12px;padding:12px 14px">
                 <div class="bold small" style="color:var(--purple)"><i data-lucide="sparkles"></i> Suggested objective · Nutrition</div>
                 <div class="tiny" style="color:var(--purple);margin-top:4px;line-height:1.5">Move the caffeine cutoff earlier to 14:00 — sleep-onset latency averages 90 min on days with caffeine after 16:00.</div>
-              </div>
-              ${cats.map((c,i) => `
+              </div>` : ''}
+              ${pageCats.map((c) => { const i = cats.indexOf(c); return `
                 <div class="rx-card" style="margin-bottom:10px">
                   <div class="head"><div class="type">${esc(c)}</div></div>
                   <textarea id="cw-wlp-${i}" class="wlp-cat" rows="2" placeholder="Objective for ${esc(c)}…" style="width:100%;margin-top:8px;padding:10px 12px;border:1px solid var(--line-2);border-radius:10px;font-family:inherit;font-size:13px;line-height:1.5;outline:none">${esc(draft.objectives[c]||'')}</textarea>
-                </div>`).join('')}
+                </div>`; }).join('')}
+              <div class="wlp-pager">
+                <button class="btn sm" ${page>0?`data-cw-action="wlp-page" data-page="${page-1}"`:'disabled'}><i data-lucide="chevron-left"></i> Prev</button>
+                <div class="wlp-dots">${Array.from({length:pageCount},(_,p)=>`<span class="dot ${p===page?'on':''}"></span>`).join('')}</div>
+                <button class="btn sm dark" ${page<pageCount-1?`data-cw-action="wlp-page" data-page="${page+1}"`:'disabled'}>Next <i data-lucide="chevron-right"></i></button>
+              </div>
             </div>
           </div>
           <div class="card scroll-card">
@@ -1208,6 +1208,27 @@
   }
   function typeLabel(t) {
     return ({sleep:'Sleep schedule', medication:'Medication', journaling:'Journaling', exercise:'Exercise'})[t] || t || '';
+  }
+  // Per-type ACTION fields for the prescription modal (matches the structured Pencil mockups).
+  function rxField(label, id, value, ph) {
+    return `<div class="rx-field"><label>${label}</label><input id="${id}" type="text" value="${esc(value||'')}" placeholder="${ph}" /></div>`;
+  }
+  function rxActionFields(t, rx) {
+    const p = rx.params || {};
+    if (t === 'sleep') return rxField('Bedtime target','cw-rx-bedtime',p.bedtime,'e.g. 22:00')
+      + `<div class="rx-field-row">${rxField('Minimum duration','cw-rx-minDur',p.minDur,'e.g. 7 h')}${rxField('Wake target','cw-rx-wake',p.wake,'e.g. 06:30')}</div>`;
+    if (t === 'medication') return `<div class="rx-field-row">${rxField('Medication','cw-rx-med',p.med,'e.g. Sertraline')}${rxField('Dose','cw-rx-dose',p.dose,'e.g. 50mg')}</div>`;
+    if (t === 'journaling') return rxField('Prompt / exercise','cw-rx-prompt',p.prompt,"e.g. 3 things you're grateful for");
+    if (t === 'exercise') return `<div class="rx-field-row">${rxField('Exercise','cw-rx-exercise',p.exercise,'e.g. 4-7-8 Breathwork')}${rxField('Repetitions / duration','cw-rx-reps',p.reps,'e.g. 4 cycles')}</div>`;
+    return '';
+  }
+  function rxComposeTitle(rx) {
+    const p = rx.params || {};
+    if (rx.type === 'sleep')      return p.bedtime ? `Be asleep by ${p.bedtime}` : (rx.title || 'Sleep schedule');
+    if (rx.type === 'medication') return (p.med || p.dose) ? `Take ${[p.med,p.dose].filter(Boolean).join(' ')}` : (rx.title || 'Medication');
+    if (rx.type === 'journaling') return p.prompt || rx.title || 'Journaling';
+    if (rx.type === 'exercise')   return p.exercise ? `${p.exercise}${p.reps?` (${p.reps})`:''}` : (rx.title || 'Exercise');
+    return rx.title || '(untitled)';
   }
   function rxModal() {
     const m = nav.rxModal;
@@ -1244,10 +1265,7 @@
               </div>
             ` : `
               <div class="rx-modal-sec-lbl">ACTION</div>
-              <div class="rx-field">
-                <label>Title</label>
-                <input id="cw-rx-title" type="text" value="${esc(rx.title||'')}" placeholder="${titlePh}" />
-              </div>
+              ${rxActionFields(t, rx)}
               <div class="rx-modal-sec-lbl">TRIGGER</div>
               <div class="rx-segmented">
                 <button class="${rx.triggerKind!=='situation'?'active':''}" data-cw-action="rx-trig-kind" data-kind="time">Time-based</button>
@@ -1276,12 +1294,13 @@
   }
   function readRxInputs() {
     if (!nav.rxModal) return;
-    const ti = document.getElementById('cw-rx-title');
-    const tr = document.getElementById('cw-rx-trigger');
-    const ru = document.getElementById('cw-rx-rules');
-    if (ti) nav.rxModal.rx.title = ti.value;
-    if (tr) nav.rxModal.rx.triggerDetail = tr.value;
-    if (ru) nav.rxModal.rx.rules = ru.value;
+    const rx = nav.rxModal.rx;
+    const g = id => document.getElementById(id);
+    const tr = g('cw-rx-trigger'); if (tr) rx.triggerDetail = tr.value;
+    const ru = g('cw-rx-rules');   if (ru) rx.rules = ru.value;
+    rx.params = rx.params || {};
+    const map = { 'cw-rx-bedtime':'bedtime','cw-rx-minDur':'minDur','cw-rx-wake':'wake','cw-rx-med':'med','cw-rx-dose':'dose','cw-rx-prompt':'prompt','cw-rx-exercise':'exercise','cw-rx-reps':'reps' };
+    Object.entries(map).forEach(([id,key]) => { const el = g(id); if (el) rx.params[key] = el.value; });
   }
   function txDataPane() {
     const t = nav.txDataTab;
@@ -1334,20 +1353,10 @@
           </div>`).join('')}
       </div>`;
     }
-    if (t === 'coach') {
-      const coach = S.activity.filter(a => a.type === 'coach');
-      if (!coach.length) return '<div class="dim small" style="padding:10px">No Coach AI activity. Events appear when Chen starts a new conversation, or returns to an existing one after a quiet gap.</div>';
-      return coach.map(a => `
-        <div class="event-row">
-          <div class="ev-ic" style="background:#EDE9FE;color:#6D28D9"><i data-lucide="sparkles"></i></div>
-          <div class="body"><div class="t">${esc(a.title)}</div><div class="m tiny">${esc(a.meta||'')}</div></div>
-          <div class="dim tiny">${esc(a.t)}</div>
-        </div>`).join('');
-    }
     return '';
   }
   function cloneVersion(v) {
-    return { rxs: S.goals.versions[v].rxs.map(r => ({...r})) };
+    return { rxs: S.goals.versions[v].rxs.map(r => ({...r, params: r.params ? {...r.params} : {}})) };
   }
   function suggestedRxCard() {
     if (S.goals.draft?.rejectedSuggestion) return '';
@@ -1518,6 +1527,8 @@
     const aBody = S.assessment.versions[aV];
     const aCur = aV === S.assessment.currentVersion;
     return shell([{label:esc(S.patient.name),go:'patient'},{label:`Session #${s.num}`}], `
+      <div class="session-layout">
+        <div class="session-main">
       <div class="card" style="margin-bottom:12px">
         <div class="row between">
           <div><h2 style="margin:0">Session #${s.num} ${allDone?'<span class="chip green"><i data-lucide="check"></i> Complete</span>':'<span class="chip amber">In progress</span>'}</h2>
@@ -1556,7 +1567,7 @@
           </div>
         </div>
       </div>
-      <div class="split">
+      <div class="session-split">
         <div>
           ${stages.note ? `
           <div class="card" style="margin-bottom:12px">
@@ -1578,7 +1589,14 @@
           `)}
           <div class="card" style="margin-bottom:12px">
             <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Treatment plan · v${wlpV} <span class="chip gray">reference</span></h3><button class="btn sm" data-cw-go="wholeLifePlan">Open</button></div>
-            <div class="small muted" style="line-height:1.5">Whole Life Plan version active at this session.</div>
+            ${(() => {
+              const ver = S.wholeLifePlan.versions[wlpV] || {};
+              const objs = ver.objectives || {};
+              const cats = S.wholeLifePlan.categories.filter(c => objs[c]).slice(0,3);
+              if (!cats.length) return '<div class="small muted" style="line-height:1.5">No objectives set for this version.</div>';
+              return cats.map(c => `<div style="margin-top:10px"><div class="kicker" style="color:#0F766E;letter-spacing:0.5px">${esc(c).toUpperCase()}</div><div class="small" style="margin-top:2px;line-height:1.5">${esc(objs[c])}</div></div>`).join('')
+                + `<div class="dim tiny" style="margin-top:10px">${esc(ver.authoredBy||'Shari Kaplan')} · v${wlpV} · ${esc(ver.date||'')}</div>`;
+            })()}
           </div>
           <div class="card">
             <div class="panel-head"><h3><i data-lucide="target"></i> Goals · ${esc(s.planVersion)} <span class="chip gray">reference</span></h3><button class="btn sm" data-cw-go="goals">Open</button></div>
@@ -1620,15 +1638,17 @@
           `}
           <div class="card">
             <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Assessment <span class="chip ${aCur?'green':'gray'}">v${aV}${aCur?'':' · at this session'}</span></h3><button class="btn sm" data-cw-action="open-session-assess">Open</button></div>
-            <div class="small" style="line-height:1.5">${esc((aBody?.body?.psychological||'')).slice(0,180)}…</div>
+            <div class="small" style="line-height:1.5">${esc((aBody?.body||'')).slice(0,180)}…</div>
             <div class="dim tiny" style="margin-top:6px">${esc(aBody?.authoredBy||'Shari Kaplan')} · ${esc(aBody?.date||'')}</div>
           </div>
         </div>
       </div>
-      <div class="row between" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)">
-        <button class="btn sm" ${prev?`data-cw-action="open-session" data-id="${prev.id}"`:'disabled'}><i data-lucide="chevron-left"></i> ${prev?`#${prev.num} · ${esc(prev.date)}`:''}</button>
-        <div class="dim small">▮▮▮▮▮▮▮▮▮▮▮▮</div>
-        <button class="btn sm dark" ${next?`data-cw-action="open-session" data-id="${next.id}"`:'data-cw-go="upload"'}>${next?`#${next.num} · ${esc(next.date)}`:'Start #'+((S.sessions[S.sessions.length-1]?.num || 12)+1)} <i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="session-timeline">
+          <button class="btn sm" ${prev?`data-cw-action="open-session" data-id="${prev.id}"`:'disabled'}><i data-lucide="chevron-left"></i> ${prev?`#${prev.num} · ${esc(prev.date)}`:'Previous'}</button>
+          <div class="session-timeline-strip">${S.sessions.map(x => `<span class="dot ${x.id===s.id?'on':''}" title="#${x.num} · ${esc(x.date)}"></span>`).join('')}</div>
+          <button class="btn sm dark" ${next?`data-cw-action="open-session" data-id="${next.id}"`:'data-cw-go="upload"'}>${next?`#${next.num} · ${esc(next.date)}`:'Start #'+((S.sessions[S.sessions.length-1]?.num || 12)+1)} <i data-lucide="chevron-right"></i></button>
+        </div>
       </div>
       ${dpModal()}
     `);
@@ -2159,11 +2179,8 @@
       if (a === 'assess-save') {
         const newV = S.assessment.currentVersion + 1;
         const cur = S.assessment.versions[S.assessment.currentVersion];
-        S.assessment.versions[newV] = { date:'Today', sessionId:nav.sessionId, authoredBy:S.clinician.name, body:{
-          biological: document.getElementById('cw-a-biological').value,
-          psychological: document.getElementById('cw-a-psychological').value,
-          social: document.getElementById('cw-a-social').value,
-        }};
+        S.assessment.versions[newV] = { date:'Today', sessionId:nav.sessionId, authoredBy:S.clinician.name,
+          body: (document.getElementById('cw-a-body')?.value ?? cur.body) };
         S.assessment.currentVersion = newV;
         const s = S.sessions.find(x => x.id === nav.sessionId);
         if (s) { s.assessmentVersion = newV; }
@@ -2185,11 +2202,11 @@
       }
       if (a === 'tx-dismiss-sug') { S.goals.draft.rejectedSuggestion = true; bus.emit(); }
       if (a === 'tx-edit-sug') {
-        nav.rxModal = { mode:'add', fromSuggestion:true, rx:{ type:'exercise', title:'Evening wind-down — no screens after 21:30', triggerKind:'time', triggerDetail:'Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.' } };
+        nav.rxModal = { mode:'add', fromSuggestion:true, rx:{ type:'exercise', title:'Evening wind-down — no screens after 21:30', triggerKind:'time', triggerDetail:'Nightly 21:30', rules:'Phone face-down. Low-stim activity until lights out.', params:{ exercise:'Evening wind-down — no screens after 21:30' } } };
         render();
       }
       if (a === 'tx-add') {
-        nav.rxModal = { mode:'add', rx:{ type:null, title:'', triggerKind:'time', triggerDetail:'', rules:'' } };
+        nav.rxModal = { mode:'add', rx:{ type:null, title:'', triggerKind:'time', triggerDetail:'', rules:'', params:{} } };
         render();
       }
       if (a === 'tx-edit') {
@@ -2197,7 +2214,7 @@
         if (rx) {
           const isSituation = /condition|situation|when |if /i.test(rx.trigger||'');
           const detail = (rx.trigger||'').replace(/^(Time|Condition|Situation)\s*·\s*/i, '');
-          nav.rxModal = { mode:'edit', rx:{ id:rx.id, type:rx.type, title:rx.title||'', triggerKind:isSituation?'situation':'time', triggerDetail:detail, rules:rx.rules||'', cta:rx.cta } };
+          nav.rxModal = { mode:'edit', rx:{ id:rx.id, type:rx.type, title:rx.title||'', triggerKind:isSituation?'situation':'time', triggerDetail:detail, rules:rx.rules||'', cta:rx.cta, params: rx.params ? {...rx.params} : {} } };
           render();
         }
       }
@@ -2217,13 +2234,14 @@
         const rx = nav.rxModal.rx;
         if (!rx.type) return;
         const trigStr = (rx.triggerKind==='situation'?'Condition · ':'Time · ') + (rx.triggerDetail||'');
+        const title = rxComposeTitle(rx);
         if (nav.rxModal.mode === 'add') {
-          S.goals.draft.rxs.push({ id:uid('rx'), type:rx.type, title:rx.title||'(untitled)', trigger:trigStr, rules:rx.rules });
+          S.goals.draft.rxs.push({ id:uid('rx'), type:rx.type, title, trigger:trigStr, rules:rx.rules, params:rx.params });
           if (nav.rxModal.fromSuggestion) S.goals.draft.rejectedSuggestion = true;
           notify('Prescription added to draft');
         } else {
           const ex = S.goals.draft.rxs.find(x => x.id === rx.id);
-          if (ex) { ex.title = rx.title; ex.trigger = trigStr; ex.rules = rx.rules; }
+          if (ex) { ex.title = title; ex.trigger = trigStr; ex.rules = rx.rules; ex.params = rx.params; }
           notify('Prescription updated');
         }
         nav.rxModal = null;
@@ -2239,6 +2257,11 @@
         render();
       }
       if (a === 'wlp-discard') { nav.wlpDraft = null; nav.screen = 'patient'; render(); }
+      if (a === 'wlp-page') {
+        S.wholeLifePlan.categories.forEach((c,i) => { const el = document.getElementById('cw-wlp-'+i); if (el && nav.wlpDraft) nav.wlpDraft.objectives[c] = el.value; });
+        nav.wlpPage = parseInt(b.dataset.page,10);
+        render();
+      }
       if (a === 'wlp-publish') {
         const newV = S.wholeLifePlan.currentVersion + 1;
         const obj = {};
@@ -2246,7 +2269,7 @@
         S.wholeLifePlan.versions[newV] = { date:'Today', authoredBy:S.clinician.name, objectives: obj };
         S.wholeLifePlan.currentVersion = newV;
         nav.wlpDraft = null;
-        addActivity({ type:'system', t:'now', title:`Treatment plan published · v${newV}`, meta:'Chen will see the updated Whole Life Plan on next launch.' });
+        addActivity({ type:'system', t:'now', title:`Treatment plan published · v${newV}`, meta:'Chen will see the updated treatment plan on next launch.' });
         notify('Treatment plan v'+newV+' published');
         nav.screen = 'patient'; render();
       }

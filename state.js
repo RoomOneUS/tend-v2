@@ -61,32 +61,20 @@
             { id:uid('rx'), type:'exercise',   title:'Box breathing', trigger:'Condition · on stress', rules:'4-4-4-4 sec, 4 cycles.' },
           ]},
           4: { rxs: [
-            { id:uid('rx'), type:'medication', title:'Take Sertraline 50mg', trigger:'Time · Daily 08:00', rules:'Take with food.', cta:'Mark taken' },
-            { id:uid('rx'), type:'sleep',      title:'Be asleep by 22:00',      trigger:'Time · Nightly', rules:'If you can\'t sleep within 20 min, get up and do a quiet activity until drowsy.', cta:'Log bedtime' },
-            { id:uid('rx'), type:'journaling', title:'3 things you\'re grateful for', trigger:'Time · Daily', rules:'Before 21:00 ideally.', cta:'Open journal' },
-            { id:uid('rx'), type:'exercise',   title:'4-7-8 Breathwork (4 cycles)', trigger:'Condition · when stress is high (HR > 95 sustained)', rules:'Inhale 4 sec · hold 7 sec · exhale 8 sec. Repeat 4 times.', cta:'Start exercise' },
+            { id:uid('rx'), type:'medication', title:'Take Sertraline 50mg', trigger:'Time · Daily 08:00', rules:'Take with food.', cta:'Mark taken', params:{ med:'Sertraline', dose:'50mg' } },
+            { id:uid('rx'), type:'sleep',      title:'Be asleep by 22:00',      trigger:'Time · Nightly', rules:'If you can\'t sleep within 20 min, get up and do a quiet activity until drowsy.', cta:'Log bedtime', params:{ bedtime:'22:00', minDur:'7 h', wake:'06:30' } },
+            { id:uid('rx'), type:'journaling', title:'3 things you\'re grateful for', trigger:'Time · Daily', rules:'Before 21:00 ideally.', cta:'Open journal', params:{ prompt:'3 things you\'re grateful for' } },
+            { id:uid('rx'), type:'exercise',   title:'4-7-8 Breathwork (4 cycles)', trigger:'Condition · when stress is high (HR > 95 sustained)', rules:'Inhale 4 sec · hold 7 sec · exhale 8 sec. Repeat 4 times.', cta:'Start exercise', params:{ exercise:'4-7-8 Breathwork', reps:'4 cycles' } },
           ]},
         },
       },
-      // Versioned assessment
+      // Versioned assessment — a single unstructured free-text diagnostic write-up per version (no biological/psychological/social split).
       assessment: {
         currentVersion: 8,
         versions: {
-          6:  { date:'May 2',  sessionId:'s9',  authoredBy:'Shari Kaplan', body:{
-            biological:'Sertraline 25mg started. Sleep latency 60-90 min. Resting HR 78 (baseline ~72).',
-            psychological:'Hyperarousal pattern still dominant; trauma-linked avoidance manifesting as digital-numbing (long phone scrolling sessions evenings). Gratitude journal early-stage — patient skeptical but compliant.',
-            social:'Job stress acute — sprint review next week. Roommate (Mia) noted as supportive. No new social stressors flagged this period.',
-          }},
-          7: { date:'May 9', sessionId:'s10', authoredBy:'Shari Kaplan', body:{
-            biological:'Sertraline titrated up 2 weeks ago. GI side-effects subsiding. Sleep latency averaging ~50 min.',
-            psychological:'Avoidance softer mid-cycle, returns under deadline. Gratitude practice approaching habit threshold (~80% adherence).',
-            social:'Roommate dynamics stable. Work pressure recurring.',
-          }},
-          8: { date:'May 23', sessionId:'s12', authoredBy:'Shari Kaplan', body:{
-            biological:'Sertraline 50mg titrated up 2 weeks ago, with modest mood improvement and GI side-effects subsiding. Sleep latency averaging 45 min, with onset between 23:30-01:30. HR variability suggests elevated baseline arousal under work stress.',
-            psychological:'Trauma-linked hyperarousal continues to drive avoidance of evening transitions. Compulsive phone scrolling as self-soothing maintains the sleep-anxiety loop. Gratitude practice is becoming a real anchor (87% adherence).',
-            social:'Work pressure peaking on a quarterly cycle — pattern matches prior sleep deterioration episodes. Single roommate (Mia) supportive but not aware of treatment. Recent shift in close-friend dynamics may be re-activating attachment-related vigilance.',
-          }},
+          6:  { date:'May 2',  sessionId:'s9',  authoredBy:'Shari Kaplan', body:'Sertraline 25mg started; sleep latency 60–90 min and resting HR 78 (baseline ~72). Hyperarousal remains the dominant pattern, with trauma-linked avoidance showing up as evening digital-numbing (long phone-scrolling sessions); the gratitude journal is early-stage and the patient is skeptical but compliant. Job stress is acute ahead of next week\'s sprint review; her roommate Mia is supportive, with no new social stressors flagged this period.' },
+          7: { date:'May 9', sessionId:'s10', authoredBy:'Shari Kaplan', body:'Sertraline titrated up two weeks ago, with GI side-effects subsiding and sleep latency averaging about 50 minutes. Avoidance is softer mid-cycle but returns under deadline pressure, and the gratitude practice is approaching habit threshold (~80% adherence). Roommate dynamics are stable; work pressure is recurring on its usual cycle.' },
+          8: { date:'May 23', sessionId:'s12', authoredBy:'Shari Kaplan', body:'Sertraline 50mg was titrated up two weeks ago, with modest mood improvement as the GI side-effects subside; sleep latency now averages about 45 minutes, with onset drifting between 23:30 and 01:30, and HR variability suggests an elevated baseline arousal under work stress. Trauma-linked hyperarousal continues to drive avoidance of evening transitions, and compulsive phone-scrolling as self-soothing maintains the sleep-anxiety loop — though the daily gratitude practice is becoming a genuine anchor (87% adherence). Work pressure is peaking on its usual quarterly cycle, a pattern that matches prior sleep-deterioration episodes; her roommate Mia is supportive but unaware of treatment, and a recent shift in close-friend dynamics may be re-activating attachment-related vigilance.' },
         },
       },
       // Whole Life Plan (the "treatment plan") — free-text objectives across 14 categories, versioned.
