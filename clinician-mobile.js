@@ -406,8 +406,8 @@ Chen: It's been rough. I think I got to sleep around 1 most nights..."></textare
         // create new session
         const num = (S.sessions[S.sessions.length-1]?.num || 12) + 1;
         S.sessions.push({ id:'s'+num, num, date:'today', duration:'-', src:'AI Scribe (mobile)',
-          stages:{raw:true, note:false, assessment:false, plan:false},
-          note:{ presenting:text.split('\n').slice(0,3).join(' '), interventions:'', homework:'' }, planVersion: 'v'+S.txPlan.currentVersion, transcript:text });
+          stages:{raw:true, note:false, dataPoints:false},
+          note:{ presenting:text.split('\n').slice(0,3).join(' '), interventions:'', homework:'' }, planVersion: 'v'+S.goals.currentVersion, assessmentVersion: S.assessment.currentVersion, wholeLifePlanVersion: S.wholeLifePlan.currentVersion, transcript:text });
         addActivity({ type:'session', t:'now', title:`Session #${num} uploaded`, meta:'From mobile · awaiting note' });
         notify(`Session #${num} pushed to web app`);
         nav.overlay = 'ok';

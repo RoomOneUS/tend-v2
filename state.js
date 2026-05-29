@@ -19,18 +19,18 @@
         { label:'Veteran (IDF)', color:'green', patients:1 },
       ],
       compliance: { value: 82, deltaLabel: '+6 last 7 days', sparkline: [62,65,68,66,71,74,72,75,78,76,80,82], visibleToPatient: false },
-      // Sessions lifecycle: stages.raw, stages.note, stages.assessment, stages.plan
+      // Sessions lifecycle: stages.raw, stages.note, stages.dataPoints (assessment/goals/wholeLifePlan are referenced, not staged)
       sessions: [
-        { id:'s9',  num:9,  date:'May 2 ',  duration:'47 min', src:'Google Meet', stages:{raw:true,note:true,assessment:true,plan:true},
+        { id:'s9',  num:9,  date:'May 2 ',  duration:'47 min', src:'Google Meet', stages:{raw:true,note:true,dataPoints:true},
           note:{ summary:'Sertraline started; trauma flashbacks surfacing after a stressful meeting. Established biweekly cadence and grounding work.', subjective:'', objective:'', assessmentPlan:'Started Sertraline 50mg; trauma flashbacks after Tuesday meeting. Discussed grounding; scheduled biweekly cadence. Plan: daily gratitude journal; breathwork as needed.' },
-          planVersion:'v2', assessmentVersion: 6 },
-        { id:'s10', num:10, date:'May 9 ',  duration:'53 min', src:'Google Meet', stages:{raw:true,note:true,assessment:true,plan:true},
+          planVersion:'v2', assessmentVersion: 6, wholeLifePlanVersion: 2 },
+        { id:'s10', num:10, date:'May 9 ',  duration:'53 min', src:'Google Meet', stages:{raw:true,note:true,dataPoints:true},
           note:{ summary:'Medication side-effects easing and mood lifting slightly. Reinforced sleep hygiene and HRV tracking.', subjective:'', objective:'', assessmentPlan:'Sertraline GI side-effects easing; mood lifting slightly. Reinforced sleep hygiene; tracked HRV pattern. Plan: continue gratitude; track bedtime regularity.' },
-          planVersion:'v3', assessmentVersion: 7 },
-        { id:'s11', num:11, date:'May 16', duration:'48 min', src:'Google Meet', stages:{raw:true,note:true,assessment:true,plan:true},
+          planVersion:'v3', assessmentVersion: 7, wholeLifePlanVersion: 3 },
+        { id:'s11', num:11, date:'May 16', duration:'48 min', src:'Google Meet', stages:{raw:true,note:true,dataPoints:true},
           note:{ summary:'Deadline week pushed bedtimes back to 1am with anxious mornings. Introduced box breathing and a phone-use boundary.', subjective:'', objective:'', assessmentPlan:'Work deadline week — back to 1am bedtimes, anxious mornings. Box breathing introduced; phone-use boundary planned. Plan: box breathing on stress; gratitude continues.' },
-          planVersion:'v3', assessmentVersion: 7 },
-        { id:'s12', num:12, date:'May 23', duration:'47 min', src:'Google Meet', stages:{raw:true,note:true,assessment:false,plan:false},
+          planVersion:'v3', assessmentVersion: 7, wholeLifePlanVersion: 3 },
+        { id:'s12', num:12, date:'May 23', duration:'47 min', src:'Google Meet', stages:{raw:true,note:true,dataPoints:false},
           note:{ summary:'Sleep deterioration during a work-deadline week, with anxious mornings and phone-related avoidance of evening wind-down. Mood flat but stable; no new safety concerns. Reinforced a 21:30 wind-down rule and on-demand breathwork.', subjective:'Reports a hard week — work deadline crunch, falling asleep past 1am most nights. Says "I feel wired but exhausted." Gratitude practice has helped on mornings she keeps it; skipped it twice when she was running late. No suicidal ideation; mood described as "flat, not dark."', objective:'Arrived 4 min late, slightly winded. Affect constricted, attention intact. Speech rate elevated early in session, normalized by minute 15. Notable phone-checking behavior (3×) when discussing roommate dynamics. No psychomotor agitation. Engaged with breathwork demo without resistance.', assessmentPlan:'Trauma-linked hyperarousal continues to drive avoidance of evening transitions, maintaining a sleep-anxiety loop; gratitude practice is becoming a stabilizing anchor (87% adherence). No acute safety concerns this session. Plan: reinforce 21:30 no-screen wind-down rule, continue daily gratitude journal, use 4-7-8 breathwork when stress crosses threshold, and re-evaluate sleep timing in 2 weeks.' },
           transcript:[
             { who:'Shari', text:'How have things been since we last met?' },
@@ -42,10 +42,10 @@
             { who:'Shari', text:"Let's try a 21:30 wind-down rule — no screens after that — and lean on the 4-7-8 breathwork when the stress spikes." },
             { who:'Chen',  text:'I can try that. The phone is definitely the thing keeping me up.' },
           ],
-          planVersion:'v4', assessmentVersion: 8 },
+          planVersion:'v4', assessmentVersion: 8, wholeLifePlanVersion: 3 },
       ],
-      // Treatment plan versions
-      txPlan: {
+      // Goals versions
+      goals: {
         currentVersion: 4, draft: null, versions: {
           1: { rxs: [
             { id:uid('rx'), type:'medication', title:'Take Sertraline 25mg', trigger:'Time · Daily 08:00', rules:'Take with food.' },
@@ -89,6 +89,47 @@
           }},
         },
       },
+      // Whole Life Plan (the "treatment plan") — free-text objectives across 14 categories, versioned.
+      wholeLifePlan: {
+        currentVersion: 3,
+        categories: ['Nutrition','Exercise','Music & Movement','Meditation & Mindfulness','Self-regulation tools','Breathwork','Spirituality','Finances','Work & Work Relationships','Fun & Hobbies','Mentoring & Volunteering','Relationship with Self','Relationships with Others','Personality'],
+        versions: {
+          2: { date:'May 9', authoredBy:'Shari Kaplan', objectives: {
+            'Nutrition':'Protein + greens at breakfast. Begin pulling caffeine earlier in the day.',
+            'Exercise':'Re-establish a short morning walk most days.',
+            'Meditation & Mindfulness':'Reintroduce a brief daily body scan.',
+            'Breathwork':'4-7-8 breathing when stress spikes.',
+            'Work & Work Relationships':'Notice the deadline-week sleep slide; name it with Shari.',
+            'Relationship with Self':'Soften the all-or-nothing self-talk on missed days.',
+          }},
+          3: { date:'May 23', authoredBy:'Shari Kaplan', objectives: {
+            'Nutrition':'Anti-inflammatory focus: protein and greens at breakfast; caffeine cutoff at 14:00 to protect sleep onset.',
+            'Exercise':'20-minute morning walk 4×/week; add light resistance work twice weekly as energy returns.',
+            'Music & Movement':'Evening wind-down playlist; five minutes of free movement or stretching before bed.',
+            'Meditation & Mindfulness':'Daily 5-minute body scan; notice the urge to phone-scroll in the evening without acting on it.',
+            'Self-regulation tools':'Name the feeling, ground with 5-4-3-2-1, then choose one small next step.',
+            'Breathwork':'4-7-8 breathing on rising stress and as part of the bedtime routine.',
+            'Spirituality':'Reconnect with what feels meaningful — gratitude reflection and weekend time in nature.',
+            'Finances':'Reduce money rumination: one 15-minute weekly review, then close the laptop.',
+            'Work & Work Relationships':'Protect a 19:00 hard stop on deadline weeks; one honest check-in with the manager about load.',
+            'Fun & Hobbies':'Reclaim one phone-free hobby block each week (sketching) for its own sake.',
+            'Mentoring & Volunteering':'Explore a low-commitment way to support fellow veterans once things stabilize.',
+            'Relationship with Self':'Soften self-talk on missed days; treat the plan as practice, not a test.',
+            'Relationships with Others':'Let Mia in a little more — share one real thing each week.',
+            'Personality':'Lean on conscientiousness as a strength; watch the perfectionism that fuels avoidance.',
+          }},
+        },
+      },
+      // Data points — typed, timestamped containers of patient context (MVP: text). Extracted from notes or added manually.
+      dataPoints: [
+        { id:uid('dp'), sessionId:'s12', type:'text', label:'Sleep onset', value:'Falling asleep past 1:00 most nights this week.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
+        { id:uid('dp'), sessionId:'s12', type:'text', label:'Evening phone use', value:'Phone scrolling in bed identified as the main wind-down blocker.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
+        { id:uid('dp'), sessionId:'s12', type:'text', label:'Gratitude adherence', value:'Gratitude journal kept ~5 of 7 mornings; reports it helps when done.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
+        { id:uid('dp'), sessionId:'s12', type:'text', label:'Mood / safety', value:'Mood described as "flat, not dark"; denies suicidal ideation.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
+        { id:uid('dp'), sessionId:'s11', type:'text', label:'Work stressor', value:'Quarterly deadline crunch driving late bedtimes.', source:'extracted', status:'approved', flagged:false, at:'May 16' },
+        { id:uid('dp'), sessionId:'s11', type:'text', label:'Coping skill', value:'Box breathing introduced for acute stress moments.', source:'manual', status:'approved', flagged:false, at:'May 16' },
+        { id:uid('dp'), sessionId:null, type:'text', label:'Support network', value:'Roommate Mia is supportive but unaware of treatment.', source:'manual', status:'approved', flagged:false, at:'May 9' },
+      ],
       // Activity feed (clinician web). Newest first.
       activity: [
         { id:uid('act'), type:'shared', t:'-3h', title:'Shared 3 new data points', meta:'Sleep duration · HR variability · Activity steps', read:true },
