@@ -48,7 +48,7 @@
       ${arr.map(t => `
         <div class="tl-item ${t.flagged?'flagged':''}">
           <div class="date">${esc(t.date)}</div>
-          <div class="bold small" style="margin-top:2px">${esc(t.label)} ${t.flagged?'<span class="chip red">FLAGGED</span>':''}</div>
+          <div class="bold small" style="margin-top:2px">${t.bps?'<span class="bps-pill">BPS</span> ':''}${esc(t.label)} ${t.flagged?'<span class="chip red">FLAGGED</span>':''}${t.status?`<span class="chip ${t.status==='approved'?'green':'amber'}">${t.status==='approved'?'Approved':'Pending'}</span>`:''}</div>
           <div class="tiny muted">${esc(t.meta||'')}</div>
         </div>`).join('')}
     </div>`;
@@ -90,8 +90,21 @@
         </div>`).join('');
     }
     if (tab === 'shared') {
-      if (nav.sharedSubView === 'timeline') return renderTimeline(S.sharedData.timeline);
-      return S.sharedData.bySource.map(s => `
+      const dps = (S.dataPoints || []).filter(d => d.status === 'approved');
+      if (nav.sharedSubView === 'timeline') {
+        const dpItems = dps.map(d => ({ date:`Collected ${d.collectedAt}`, label:`Data point · ${d.referenceDate}`, meta:d.answer, bps:true }));
+        return renderTimeline(dpItems.concat(S.sharedData.timeline));
+      }
+      const dpGroup = dps.length ? `
+        <div class="shared-source">
+          <div class="src-h"><div class="name"><span class="bps-pill">BPS</span> Data points</div><div class="count">${dps.length} shared</div></div>
+          ${dps.map(d => `
+            <div class="shared-row" data-cw-action="dp-open" data-id="${d.id}" style="cursor:pointer"><div class="ev-ic" style="background:#f1f5f9">·</div>
+              <div class="body">${esc(d.prompt)}</div>
+              <div class="val"><i data-lucide="chevron-right" style="width:14px;height:14px;color:#94a3b8"></i></div>
+            </div>`).join('')}
+        </div>` : '';
+      return dpGroup + S.sharedData.bySource.map(s => `
         <div class="shared-source">
           <div class="src-h"><div class="name"><span>${s.icon}</span> ${esc(s.name)}</div><div class="count">${esc(s.updated)}</div></div>
           ${s.items.map(it => `
@@ -1024,6 +1037,7 @@
           `}
         </div>
       </div>
+      ${dpModal()}
     `);
   }
   function assessDataPane() {
@@ -1134,6 +1148,7 @@
         </div>
       </div>
       ${rxModal()}
+      ${dpModal()}
     `);
   }
   /* ---------- Whole Life Plan (treatment plan) builder ---------- */
@@ -1188,6 +1203,7 @@
           </div>
         </div>
       </div>
+      ${dpModal()}
     `);
   }
   function typeLabel(t) {
@@ -1374,23 +1390,86 @@
 
   /* ---------- Data point modals ---------- */
   function sessionDataPoints(id) { return (S.dataPoints || []).filter(d => d.sessionId === id); }
+
+  function dpReviewCard(d, approved) {
+    return `
+      <div class="dp-review-card ${approved?'approved':''}">
+        <div class="dp-card-head">
+          <div class="row gap-2" style="align-items:center"><span class="bps-pill">BPS</span><span class="dp-refdate"><i data-lucide="calendar"></i> ${esc(d.referenceDate)}</span></div>
+          <span class="dp-collected">Collected ${esc(d.collectedAt)}</span>
+        </div>
+        <div class="dp-prompt"><i data-lucide="message-circle"></i> ${esc(d.prompt)}</div>
+        <div class="dp-answer">${esc(d.answer)}</div>
+        <div class="dp-actions ${approved?'approved':''}">
+          ${approved ? `
+            <span class="chip green"><i data-lucide="check"></i> Approved</span>
+            <div class="row gap-2">
+              <button class="btn sm" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button>
+              <button class="btn sm" data-cw-action="dp-undo" data-id="${d.id}"><i data-lucide="rotate-ccw"></i> Undo</button>
+            </div>
+          ` : `
+            <button class="btn sm" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button>
+            <button class="btn sm danger" data-cw-action="dp-dismiss" data-id="${d.id}"><i data-lucide="x"></i> Deny</button>
+            <button class="btn sm primary" data-cw-action="dp-approve" data-id="${d.id}"><i data-lucide="check"></i> Approve</button>
+          `}
+        </div>
+      </div>`;
+  }
+
   function dpModal() {
     const m = nav.dpModal;
     if (!m) return '';
     const s = S.sessions.find(x => x.id === (m.sessionId || nav.sessionId)) || S.sessions[S.sessions.length-1];
-    if (m.kind === 'add') {
+    if (m.kind === 'read') {
+      const d = (S.dataPoints||[]).find(x => x.id === m.id);
+      if (!d) return '';
+      const sNum = d.sessionId ? (S.sessions.find(x => x.id === d.sessionId)?.num) : null;
+      const approved = d.status === 'approved';
       return `
       <div class="rx-modal-overlay" data-cw-action="dp-cancel">
         <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:480px">
           <div class="rx-modal-hdr">
-            <div><div class="rx-modal-title">Add data point</div><div class="rx-modal-sub">A piece of context about Chen. Text only in the POC.</div></div>
+            <div><div class="rx-modal-title">Data point</div></div>
             <button class="rx-modal-close" data-cw-action="dp-cancel"><i data-lucide="x"></i></button>
           </div>
           <div class="rx-modal-body">
-            <div class="rx-field"><label>Label</label><input id="cw-dp-label" type="text" placeholder="e.g. Sleep environment" /></div>
-            <div class="rx-field"><label>Detail</label><textarea id="cw-dp-value" rows="3" placeholder="What you want to capture…"></textarea></div>
+            <div class="dp-read">
+              <div class="dp-read-meta">
+                <div class="row gap-2" style="align-items:center"><span class="bps-pill">BPS</span><span class="dp-refdate"><i data-lucide="calendar"></i> ${esc(d.referenceDate)}</span></div>
+                <span class="chip ${approved?'green':'amber'}">${approved?'Approved':'Pending'}</span>
+              </div>
+              <div class="dp-read-block"><div class="dp-read-lbl">PROMPT</div><div class="dp-read-prompt">${esc(d.prompt)}</div></div>
+              <div class="dp-read-block"><div class="dp-read-lbl">ANSWER</div><div class="dp-read-answer">${esc(d.answer)}</div></div>
+              <div class="dp-collected-box">Collected automatically · ${esc(d.collectedAt)}${sNum?` · from Session #${sNum}`:''}</div>
+            </div>
           </div>
-          <div class="rx-modal-ftr"><div></div><div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Cancel</button><button class="btn sm primary" data-cw-action="dp-save"><i data-lucide="check"></i> Add data point</button></div></div>
+          <div class="rx-modal-ftr"><div></div><div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Close</button><button class="btn sm primary" data-cw-action="dp-edit" data-id="${d.id}"><i data-lucide="pencil"></i> Edit</button></div></div>
+        </div>
+      </div>`;
+    }
+    if (m.kind === 'add' || m.kind === 'edit') {
+      const editing = m.kind === 'edit';
+      const d = editing ? (S.dataPoints||[]).find(x => x.id === m.id) : null;
+      const sNum = d && d.sessionId ? (S.sessions.find(x => x.id === d.sessionId)?.num) : null;
+      const va = (s) => editing ? ` value="${esc(s)}"` : '';
+      const cancelAction = editing ? 'dp-edit-cancel' : 'dp-cancel';
+      return `
+      <div class="rx-modal-overlay" data-cw-action="${cancelAction}">
+        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:480px">
+          <div class="rx-modal-hdr">
+            <div><div class="rx-modal-title">${editing?'Edit data point':'Add data point'}</div><div class="rx-modal-sub">${editing?'Edit this biopsychosocial point. Text only in the POC.':'A biopsychosocial question and Chen\'s answer. Text only in the POC.'}</div></div>
+            <button class="rx-modal-close" data-cw-action="${cancelAction}"><i data-lucide="x"></i></button>
+          </div>
+          <div class="rx-modal-body">
+            <div class="rx-field"><label>Prompt</label><input id="cw-dp-prompt" type="text" placeholder="e.g. How has your sleep been over the past two weeks?"${va(d?.prompt)} /></div>
+            <div class="rx-field"><label>Answer</label><textarea id="cw-dp-answer" rows="3" placeholder="Chen's answer to this question…">${editing?esc(d?.answer):''}</textarea></div>
+            <div class="rx-field"><label>Reference date</label><input id="cw-dp-refdate" type="text" placeholder="e.g. 2014, or “June 2019”"${va(d?.referenceDate)} /></div>
+            <div class="dp-help">The date or period this answer is about (e.g. a childhood event). When it was captured is recorded automatically.</div>
+            ${editing ? `<div class="dp-collected-box">Collected automatically · ${esc(d?.collectedAt)}${sNum?` · from Session #${sNum}`:''}</div>` : ''}
+          </div>
+          <div class="rx-modal-ftr"><div></div><div class="row gap-2"><button class="btn sm" data-cw-action="${cancelAction}">Cancel</button>${editing
+            ? `<button class="btn sm primary" data-cw-action="dp-save-edit" data-id="${m.id}"><i data-lucide="check"></i> Save changes</button>`
+            : `<button class="btn sm primary" data-cw-action="dp-save"><i data-lucide="check"></i> Add data point</button>`}</div></div>
         </div>
       </div>`;
     }
@@ -1399,26 +1478,21 @@
     const approved = dps.filter(d => d.status === 'approved');
     return `
       <div class="rx-modal-overlay" data-cw-action="dp-cancel">
-        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:560px">
+        <div class="rx-modal" onclick="event.stopPropagation()" style="max-width:600px">
           <div class="rx-modal-hdr">
-            <div><div class="rx-modal-title">Extracted data points · Session #${s.num}</div><div class="rx-modal-sub">Approve the points Tend pulled from the note, or add your own.</div></div>
+            <div><div class="rx-modal-title">Review data points · Session #${s.num}</div><div class="rx-modal-sub">Approve, edit, or deny the biopsychosocial points captured this session.</div></div>
             <button class="rx-modal-close" data-cw-action="dp-cancel"><i data-lucide="x"></i></button>
           </div>
           <div class="rx-modal-body">
+            <div class="dp-help-banner"><span class="dp-help-q">?</span><div><div class="dp-help-title">Don't see a data point?</div><div class="dp-help-text">Tend only extracts answers that clearly match a biopsychosocial prompt — if something wasn't a clear hit, it won't appear here. You can always add it manually.</div></div></div>
             ${pending.length ? `<div class="rx-modal-sec-lbl">PENDING REVIEW (${pending.length})</div>
-            ${pending.map(d => `
-              <div class="card" style="margin-bottom:8px;padding:12px 14px">
-                <div class="row between" style="align-items:flex-start">
-                  <div style="flex:1"><div class="bold small">${esc(d.label)}</div><div class="small muted" style="margin-top:2px;line-height:1.45">${esc(d.value)}</div></div>
-                  <div class="row gap-2" style="margin-left:10px"><button class="btn sm primary" data-cw-action="dp-approve" data-id="${d.id}"><i data-lucide="check"></i></button><button class="btn sm" data-cw-action="dp-dismiss" data-id="${d.id}"><i data-lucide="x"></i></button></div>
-                </div>
-              </div>`).join('')}` : '<div class="small muted" style="padding:6px 0 10px">No pending data points — all extracted points have been reviewed.</div>'}
-            ${approved.length ? `<div class="rx-modal-sec-lbl" style="margin-top:12px">APPROVED (${approved.length})</div>
-            ${approved.map(d => `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line-2)"><div class="small"><span class="bold">${esc(d.label)}</span> — ${esc(d.value)}</div><span class="chip ${d.source==='manual'?'gray':'green'}">${d.source}</span></div>`).join('')}` : ''}
+            ${pending.map(d => dpReviewCard(d, false)).join('')}` : '<div class="small muted" style="padding:6px 0 10px">No pending data points — all points have been reviewed.</div>'}
+            ${approved.length ? `<div class="rx-modal-sec-lbl" style="margin-top:14px">APPROVED (${approved.length})</div>
+            ${approved.map(d => dpReviewCard(d, true)).join('')}` : ''}
           </div>
           <div class="rx-modal-ftr">
             <button class="btn sm" data-cw-action="dp-add-from-extract"><i data-lucide="plus"></i> Add manually</button>
-            <div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Close</button><button class="btn sm primary" data-cw-action="dp-done"><i data-lucide="check"></i> ${pending.length?`Approve all & finish`:`Mark complete`}</button></div>
+            <div class="row gap-2"><button class="btn sm" data-cw-action="dp-cancel">Close</button>${pending.length?`<button class="btn sm primary" data-cw-action="dp-done"><i data-lucide="check"></i> Approve all pending</button>`:''}</div>
           </div>
         </div>
       </div>`;
@@ -1428,8 +1502,8 @@
   function session() {
     const s = S.sessions.find(x => x.id === nav.sessionId) || S.sessions[S.sessions.length-1];
     const stages = s.stages;
-    const allDone = stages.raw && stages.note && stages.dataPoints;
-    const stageOrder = ['raw','note','dataPoints'];
+    const allDone = stages.raw && stages.note; // data points are not a required stage
+    const stageOrder = ['raw','note'];
     const nextUpStage = stageOrder.find(k => !stages[k]);
     const idx = S.sessions.findIndex(x => x.id === s.id);
     const prev = idx > 0 ? S.sessions[idx-1] : null;
@@ -1448,7 +1522,7 @@
         <div class="row between">
           <div><h2 style="margin:0">Session #${s.num} ${allDone?'<span class="chip green"><i data-lucide="check"></i> Complete</span>':'<span class="chip amber">In progress</span>'}</h2>
             <div class="small muted" style="margin-top:4px">${esc(s.date)}, 14:00 · ${esc(s.duration)} · Imported from ${esc(s.src)}</div></div>
-          <div class="row gap-2">
+          <div class="row gap-2" style="align-items:flex-start">
             ${allDone ? `
               <div style="position:relative">
                 <button class="btn sm" data-cw-action="toggle-export-menu"><i data-lucide="download"></i> Export to EMR <i data-lucide="chevron-down"></i></button>
@@ -1465,21 +1539,20 @@
                     </div>
                     <div style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:600;padding:8px 10px;border-radius:8px;margin-top:6px">COMMING SOON</div>
                   </div>` : ''}
-              </div>
-              <button class="btn sm"><i data-lucide="refresh-cw"></i> Reopen</button>`
-              : (() => {
-                  const chip = (k, label) => {
-                    const state = stages[k] ? 'complete' : (k === nextUpStage ? 'current' : 'open');
-                    const ico = state === 'complete' ? 'check' : (state === 'current' ? 'circle-dashed' : 'circle');
-                    const interactive = k === 'note' ? `data-cw-action="open-stage" data-st="note"` : (k === 'dataPoints' ? `data-cw-action="open-dp-extract"` : '');
-                    return `<div class="stage-chip ${state}" ${interactive}><i data-lucide="${ico}"></i> ${label}</div>`;
-                  };
-                  return `<div class="stages-card" style="width:auto;display:flex;gap:6px">
-                    ${chip('raw','Raw data')}
-                    ${chip('note','Note')}
-                    ${chip('dataPoints','Data points')}
-                  </div>`;
-                })()}
+              </div>` : ''}
+            ${(() => {
+                const chip = (k, label) => {
+                  const state = stages[k] ? 'complete' : (k === nextUpStage ? 'current' : 'open');
+                  const ico = state === 'complete' ? 'check' : (state === 'current' ? 'circle-dashed' : 'circle');
+                  const interactive = k === 'note' ? `data-cw-action="open-stage" data-st="note"` : '';
+                  return `<div class="stage-chip ${state}" ${interactive}><i data-lucide="${ico}"></i> ${label}</div>`;
+                };
+                return `<div class="stages-card" style="width:auto;display:flex;gap:6px">
+                  ${chip('raw','Raw data')}
+                  ${chip('note','Note')}
+                  <div class="stage-chip neutral" data-cw-action="open-dp-extract" title="Data points are optional — review anytime"><i data-lucide="list-checks"></i> Data points</div>
+                </div>`;
+              })()}
           </div>
         </div>
       </div>
@@ -1537,19 +1610,14 @@
             <div class="row gap-2 muted"><div class="bold small"><i data-lucide="circle"></i> Data points</div></div>
             <div class="small muted" style="margin-top:6px;line-height:1.5">Available once the note is complete.</div>
           </div>
-          ` : (!stages.dataPoints ? `
-          <div class="card" style="margin-bottom:12px;background:var(--warning-soft);border-color:#fcd34d">
-            <div class="row between"><div class="bold"><i data-lucide="circle-dashed"></i> Data points pending</div>${pendingDp.length?`<span class="chip amber">${pendingDp.length} to review</span>`:''}</div>
-            <div class="small" style="margin:6px 0 10px;line-height:1.5">Review the data points Tend extracted from this session's note, then approve or add your own.</div>
-            <div class="row gap-2"><button class="btn sm" style="background:#d97706;color:white;border-color:#d97706" data-cw-action="open-dp-extract">Review data points <i data-lucide="arrow-right"></i></button><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add manually</button></div>
-          </div>
           ` : `
           <div class="card" style="margin-bottom:12px">
-            <div class="panel-head"><h3><i data-lucide="database"></i> Data points <span class="chip green"><i data-lucide="check"></i> ${approvedDp.length}</span></h3><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add</button></div>
-            ${approvedDp.length ? approvedDp.map(d => `<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--line-2)"><div class="small"><span class="bold">${esc(d.label)}</span> — ${esc(d.value)}</div><span class="chip ${d.source==='manual'?'gray':'green'}">${d.source}</span></div>`).join('') : '<div class="small muted">No data points captured for this session.</div>'}
-            ${pendingDp.length?`<div style="margin-top:10px"><button class="btn sm" data-cw-action="open-dp-extract"><i data-lucide="inbox"></i> ${pendingDp.length} pending — review</button></div>`:''}
+            <div class="panel-head"><h3><i data-lucide="list-checks"></i> Data points <span class="chip gray">${approvedDp.length} approved</span>${pendingDp.length?` <span class="chip amber">${pendingDp.length} pending approval</span>`:''}</h3><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add</button></div>
+            <div class="small muted" style="line-height:1.5;margin-bottom:8px">Approved biopsychosocial points for this session. Reviewing is optional — open review to approve, edit, or add your own.</div>
+            ${approvedDp.length ? approvedDp.map(d => `<div class="row between" data-cw-action="dp-open" data-id="${d.id}" style="padding:8px 0;border-bottom:1px solid var(--line-2);align-items:center;cursor:pointer"><div class="small" style="flex:1;padding-right:10px">${esc(d.prompt)}</div><i data-lucide="chevron-right" style="width:15px;height:15px;color:#94a3b8"></i></div>`).join('') : '<div class="small muted">No approved data points yet.</div>'}
+            <div class="row gap-2" style="margin-top:10px"><button class="btn sm primary" data-cw-action="open-dp-extract">Review data points <i data-lucide="arrow-right"></i></button><button class="btn sm" data-cw-action="open-dp-add"><i data-lucide="plus"></i> Add manually</button></div>
           </div>
-          `)}
+          `}
           <div class="card">
             <div class="panel-head"><h3><i data-lucide="clipboard-list"></i> Assessment <span class="chip ${aCur?'green':'gray'}">v${aV}${aCur?'':' · at this session'}</span></h3><button class="btn sm" data-cw-action="open-session-assess">Open</button></div>
             <div class="small" style="line-height:1.5">${esc((aBody?.body?.psychological||'')).slice(0,180)}…</div>
@@ -2207,34 +2275,70 @@
       }
       if (a === 'open-dp-extract') { nav.dpModal = { kind:'extract', sessionId: nav.sessionId }; render(); }
       if (a === 'open-dp-add') { nav.dpModal = { kind:'add', sessionId: nav.sessionId }; render(); }
-      if (a === 'dp-add-from-extract') { nav.dpModal = { kind:'add', sessionId: nav.sessionId }; render(); }
+      if (a === 'dp-add-from-extract') { nav.dpModal = { kind:'add', sessionId: nav.dpModal?.sessionId ?? nav.sessionId }; render(); }
       if (a === 'dp-cancel') { nav.dpModal = null; render(); }
+      if (a === 'dp-open') { nav.dpModal = { kind:'read', id: b.dataset.id }; render(); }
+      if (a === 'dp-edit-cancel') {
+        const rt = nav.dpModal?.returnTo;
+        const id = nav.dpModal?.id;
+        nav.dpModal = rt === 'read'
+          ? { kind:'read', id }
+          : (nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null);
+        render();
+      }
+      if (a === 'dp-edit') {
+        const dp = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        nav.dpModal = { kind:'edit', id: b.dataset.id, sessionId: nav.dpModal?.sessionId ?? dp?.sessionId ?? nav.sessionId, returnTo: nav.dpModal?.kind || 'extract' };
+        render();
+      }
       if (a === 'dp-approve') {
         const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
         if (d) d.status = 'approved';
         notify('Data point approved'); render();
       }
+      if (a === 'dp-undo') {
+        const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        if (d) d.status = 'pending';
+        notify('Moved back to pending'); render();
+      }
       if (a === 'dp-dismiss') {
         S.dataPoints = (S.dataPoints||[]).filter(x => x.id !== b.dataset.id);
-        notify('Data point dismissed'); render();
+        notify('Data point denied'); render();
       }
       if (a === 'dp-save') {
-        const label = (document.getElementById('cw-dp-label')?.value || '').trim();
-        const value = (document.getElementById('cw-dp-value')?.value || '').trim();
-        if (label || value) {
-          S.dataPoints.push({ id:uid('dp'), sessionId: nav.dpModal?.sessionId || null, type:'text', label: label||'Untitled', value, source:'manual', status:'approved', flagged:false, at:'Today' });
+        const prompt = (document.getElementById('cw-dp-prompt')?.value || '').trim();
+        const answer = (document.getElementById('cw-dp-answer')?.value || '').trim();
+        const referenceDate = (document.getElementById('cw-dp-refdate')?.value || '').trim();
+        if (prompt || answer) {
+          S.dataPoints.push({ id:uid('dp'), sessionId: nav.dpModal?.sessionId || null, prompt: prompt||'Untitled prompt', answer, referenceDate: referenceDate||'—', collectedAt:'Today', source:'manual', status:'approved' });
           notify('Data point added');
         }
         nav.dpModal = nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null;
+        render();
+      }
+      if (a === 'dp-save-edit') {
+        const d = (S.dataPoints||[]).find(x => x.id === b.dataset.id);
+        if (d) {
+          const prompt = (document.getElementById('cw-dp-prompt')?.value || '').trim();
+          const answer = (document.getElementById('cw-dp-answer')?.value || '').trim();
+          const referenceDate = (document.getElementById('cw-dp-refdate')?.value || '').trim();
+          if (prompt) d.prompt = prompt;
+          d.answer = answer;
+          if (referenceDate) d.referenceDate = referenceDate;
+          notify('Data point updated');
+        }
+        const rt = nav.dpModal?.returnTo;
+        nav.dpModal = rt === 'read'
+          ? { kind:'read', id: b.dataset.id }
+          : (nav.dpModal && nav.dpModal.sessionId ? { kind:'extract', sessionId: nav.dpModal.sessionId } : null);
         render();
       }
       if (a === 'dp-done') {
         const sid = nav.dpModal?.sessionId;
         (S.dataPoints||[]).filter(x => x.sessionId === sid && x.status === 'pending').forEach(x => x.status = 'approved');
         const sess = S.sessions.find(x => x.id === sid);
-        if (sess) sess.stages.dataPoints = true;
-        addActivity({ type:'shared', t:'now', title:`Data points extracted · Session #${sess?sess.num:''}`, meta:'Approved and saved to Chen\'s record.' });
-        notify('Data points complete');
+        addActivity({ type:'shared', t:'now', title:`Data points approved · Session #${sess?sess.num:''}`, meta:'Saved to Chen\'s biopsychosocial record.' });
+        notify('All pending data points approved');
         nav.dpModal = null; render();
       }
       if (a === 'open-session') { nav.sessionId = b.dataset.id; nav.screen='session'; render(); }

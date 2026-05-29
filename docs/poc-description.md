@@ -34,7 +34,7 @@ ssessment, treatment plan, goals are seperate from the session, however each ses
 | Compliance mesasurment | Clinician web, clincian mobile, Patient mobile (toggleable by clinician) | Clinicians and optionally patients (togglebale by the clinician) are able to track compliance with the goals in a visual way akin to stock market charts (gamification) | Only the final score is shown in the MVP, not the way it was calculated. |
 | Structured Goal building w/ suggestion engine | Clinician web | Clinicians can write the goals in a structured way, and get suggestions based on the notes, assessment, and all historic patient data that is in the system | MVP only support a closed-set of predefined "prescription types" (e.g. "Sleep Schedule", see below) |
 | Structured "Whole Life Plan" (treatment plan) building w/ suggestion engine | Clinician web | Clinicians can create the comprehensive treatment plan - a collection of objectives per category. | | 
-| Arbitrary Data Containers | Clinician web | The platform keeps typed and timestamped containers of arbitrary data (plain text, documents, images, audio, video) representing the context on a patient. They are editable and removable, and automatically extracted from notes, or manually added. Mostly used in the biopsychosocial data collection process. | MVP Contains only text containers |
+| BIOPsychoSocial Data Points | Clinician web | The platform keeps typed and timestamped containers of arbitrary data (plain text, documents, images, audio, video) representing the context on a patient (answers to biopsychosocial prompts). They are editable and removable, and automatically extracted from notes, or manually added. Used in the biopsychosocial data collection process. | MVP has only text containers |
 | Direct Messaging | Clinician web, patient mobile |  | Clinicians can only send messages and see proper message history in the web app. Messaging is limited to simple text only. |
 | Session Note Management | Clinician web | Clinician can view and edit session notes. Notes are automatically filled-in based on the session transcription (if available) | only a "default" template is supported.|
 | Assessment Management w/ suggestion engine | Clinician web | Clinician can view and edit assessments, and get suggestions based on notes and patient's historic data. | |
@@ -164,6 +164,31 @@ An Esclations (soft+hard+user-only).
 
 ## Clinician Web App
 
+### Recurring Components
+#### Data Browser/Display Componenet
+
+used in the patient profile (labeled "activity"), the goal builder and treatment plan builder (labeled "patient context"), and the assessment builder (labeled "data side").
+
+this is browseable data surface showing 4 tabs: All / Sessions (default) / Shared data / Messages.
+
+doubles as the notification history log (with an unread counter). Event types: sessions, messages, urgent notifications, data shared, Coach AI activity.
+Filterable by event type.
+Default sort: chronological.
+Tap an event to open a detail view (session detail for sessions, messaging UI for messages, etc.).
+
+"All" tab and "Shared Data" tab have a toggle for "list/timeline" view.
+
+NOTE:
+**Coach AI activity is rolled up, not per-message.** Surfacing every patient <> Coach AI message would flood the feed. Instead, an event is emitted when (a) the patient starts a **new conversation** with Coach AI, or (b) activity resumes in an **existing conversation** after a quiet gap (i.e. enough time has passed since the last message that it reads as a fresh interaction rather than a continuation). Tapping the event opens the conversation. (Incognito chats are excluded — see Coach AI.)
+
+Shared data features any data the user shares from the app. That is all data available to the app (incuding coach ai activity) minus the data the user chose not to allow sharing. 
+It also includes the "biopsychosocial data points" (they are marked with a "BPS" pill)
+
+clicking on a bps data point will open a read view modal.
+only approved data points are show in the read view modal.
+
+![Clinician Web — Data point read view](./images/clinician-web-data-point-read-view.png)
+
 ### Login
 
 Clinicians are able to login to the web app with the credentials they signed-up with on the platform website, or with their google/apple account. A valid account is: (1) validated (correct credentials) (2) has completed the onboarding flow in the website.
@@ -218,7 +243,7 @@ Also, EMR integration. Shown as connected (just so that we can show the full "ex
 ![Clinician Web — Integrations](./images/clinician-web-integrations.png)
 ![Clinician Web — Integration demo](./images/clinician-web-integration-demo.png)
 
-### Patient profile (incl. shared data view)
+### Patient profile
 Header: patient info (with an edit button - clicking leads to "patient editing" modal), **compliance score**. Tapping opens the compliance & progress view.
 
 Quick Action buttons:
@@ -237,17 +262,8 @@ for each tab, show the relevant data + an action button for opening the editor.
 
 right side:
 
-**Recent activity feed**: same as the patient context panel in the goal builder and "data side" in assessment pages.
-
-doubles as the notification history log (with an unread counter). Event types: sessions, messages, urgent notifications, data shared, Coach AI activity.
-Filterable by event type.
-Default sort: chronological.
-Tap an event to open a detail view (session detail for sessions, messaging UI for messages, etc.).
-
-NOTE:
-**Coach AI activity is rolled up, not per-message.** Surfacing every patient <> Coach AI message would flood the feed. Instead, an event is emitted when (a) the patient starts a **new conversation** with Coach AI, or (b) activity resumes in an **existing conversation** after a quiet gap (i.e. enough time has passed since the last message that it reads as a fresh interaction rather than a continuation). Tapping the event opens the conversation. (Incognito chats are excluded — see Coach AI.)
-
-**add data points** - in the "shared data" tab within the "data side" component, show a button for adding a data point. this will open the add data point modal. (this is only here and not in the other two instances of this data container component because they are read only.)
+**Recent activity feed**: the Data Display Componenet.
+doubles as the notification history log (with an unread counter).
 
 ![Clinician Web — Patient Profile (default / source view)](./images/clinician-web-patient-profile.png)
 ![Clinician Web — Patient Profile Activity (variations)](./images/clinician-web-patient-profile-activity-variations.png)
@@ -301,6 +317,13 @@ Fields auto-fill from the raw transcription.
 
 This modal is opened directly from the note screen, and allows the clinician to approve auto-suggested data points extracted from the notes, and add new data points.
 
+User can deny, approve, or edit each suggested data point. 
+
+only data points that are a hit for the biopsychosocial framework are extracted and shown.
+
+the extraction attempts to find the prompt, the answer, and a "reference date" timestamp (that is - the time that the answer refers to)
+the date the data point was collected is also metadata set by the extractor.
+
 the modal contains a button at the bottom for adding data points manually.
 You can also access this modal from the session summary screen directly.
 
@@ -308,11 +331,16 @@ You can also access this modal from the session summary screen directly.
 
 ### Adding Data Points Modal
 
-Clinician can add data points (context about the patient). In the MVP these are limited to text.
-You csn access this modal directly through any session summary page, and 
+Clinician can add data points (biopsychosocial context about the patient). In the MVP these are limited to text.
+You can access this modal directly through any session summary page, and 
 This modal is also accessible directly from the patient profile (see details below for exact placement)
+A data point consists of a prompt (the biopsychosocial question that was prompted to the patient), an answer, and a "reference date" timestamp - the time the answer refers to.
 
 ![Clinician Web — Add Data Point modal](./images/clinician-web-add-data-point-modal.png)
+
+Editing a data point opens the same form pre-filled. The prompt, answer, and reference date are editable; the auto-captured "collected" metadata (date + source session) is shown read-only. Cancel/close returns to wherever the edit was launched from (the read view, or the extracted/review modal), without saving.
+
+![Clinician Web — Edit Data Point modal](./images/clinician-web-edit-data-point-modal.png)
 
 
 ### Assessment screen
@@ -320,7 +348,7 @@ Purpose (see Assumptions): the clinician diagnoses, captures advanced notes (e.g
 
 Two-pane layout: notes ("patient context" — read only) on one side, unstructured free-text box on the other.
 Clinician can browse previous notes, plans, assessments, and shared data while writing. The interface for this is a tab strip at top — Sessions (default) / Shared data / Activity / Messages. It is read only.
-This is on the right side "data side". This is the same data display component as the goal builder's "patient context" panel, and the activity panel in the patient profile.
+This is the same data display component as the goal builder's "patient context" panel, and the activity panel in the patient profile.
 
 The assessment is **cumulative**, not per-session (see Assumptions). The most recent version is therefore visible.
 
@@ -356,7 +384,7 @@ Instructions, rules, limitations.
 The rest (structure, primary CTA, collection, and compliance calculation algorithm) is determined by the prescription type, with no manual input from the clinician.
 
 Page layout — two panes:
-**Right: data side — "patient context"** — top part shows the treatment plan (the whole life plan), bottom part has the same browseable data surface as on the assessment screen (Sessions (default) / Shared data / Activity / Messages). Here too it is read-only.
+**Right: data side — "patient context"** — top part shows the treatment plan (the whole life plan), bottom part is the data browser component.
 **Left: prescriptions side** — the goals being defined. Clinician adds prescriptions by picking a type and filling in parameters.
 
 **Suggestion engine:** based on Shari's biopsychosocial framework, the right pane surfaces suggested prescriptions with the parameters pre-filled from the data on the left. The clinician can accept, edit, or dismiss.
@@ -392,14 +420,15 @@ Clinician can toggle whether the patient sees their own compliance & progress (p
 
 ### Session summary
 Opens when you click a session.
-If any stage is incomplete (e.g. raw uploaded, notes edited, pending data points extracted), shows a stages card: green = complete, white = open. orange = next up (according to the flow: raw, note, data points extraction).
-Card is hidden when all stages are done.
+Shows a stages card: green = complete, white = open, orange = next up (according to the flow: raw → note). Data points appears in the stages card too, but as a neutral (non-gating) chip — it's not a required stage, so it's never marked orange/next-up. The session counts as complete once raw + note are done; the stages card stays visible so the optional data points review is always reachable.
+
+data points are always shown in sessions, but they aren’t a required stage. so they aren't highlighted even if there are pending data points for review. Only approved data points are listed in the session's data points card; pending ones are reviewed via the review modal.
 
 Tapping an incomplete stage jumps into that editor (or for the data points, opens the data points approval modal).
 Default view: notes + treatment plan + goals on the left, raw data (transcript + audio if available) + data points related to this session (approved or manually added, and show a pill here to go to the data points approval modal if there are pending data points. clicking it will open the modal where you can approve data points that were extracted from the notes this session. also show a button here to manually add data points - this will open the add data point modal, even though the approval modal also has the "add manually" button) + assessment on the right. The raw data isn't directly shown, but clicking on them opens/downloads.
 Timeline strip at the bottom for jumping between sessions, plus **Next / Previous session** buttons. Pressing **Next** on the most recent session opens the upload screen.
 
-![Clinician Web — Session summary (data points next-up)](./images/clinician-web-session-summary-data-points-next-up.png)
+![Clinician Web — Session summary (data points pending · approved + pending)](./images/clinician-web-session-summary-data-points-next-up.png)
 ![Clinician Web — Session summary (all stages complete · Export to EMR)](./images/clinician-web-session-summary-all-complete.png)
 
 There is a button to export to EMR. it opens a menu with two options: 1. export plain text (for the clinician to copy and paste into an EMR) 2. send to EMR (via the integration, if it is connected.). buttons are shown but not clickable, as EMR integration is not implemented in the MVP.

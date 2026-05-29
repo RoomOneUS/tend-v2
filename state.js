@@ -120,15 +120,17 @@
           }},
         },
       },
-      // Data points — typed, timestamped containers of patient context (MVP: text). Extracted from notes or added manually.
+      // Data points — biopsychosocial Q&A captured about the patient. Each is a clinician prompt + the patient's answer.
+      // referenceDate = the date/period the answer is *about* (e.g. a childhood event). collectedAt = when it was recorded (auto-captured).
+      // Extracted from notes or added manually. Not a required session stage — clinicians can approve/edit/deny anytime.
       dataPoints: [
-        { id:uid('dp'), sessionId:'s12', type:'text', label:'Sleep onset', value:'Falling asleep past 1:00 most nights this week.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
-        { id:uid('dp'), sessionId:'s12', type:'text', label:'Evening phone use', value:'Phone scrolling in bed identified as the main wind-down blocker.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
-        { id:uid('dp'), sessionId:'s12', type:'text', label:'Gratitude adherence', value:'Gratitude journal kept ~5 of 7 mornings; reports it helps when done.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
-        { id:uid('dp'), sessionId:'s12', type:'text', label:'Mood / safety', value:'Mood described as "flat, not dark"; denies suicidal ideation.', source:'extracted', status:'pending', flagged:false, at:'May 23' },
-        { id:uid('dp'), sessionId:'s11', type:'text', label:'Work stressor', value:'Quarterly deadline crunch driving late bedtimes.', source:'extracted', status:'approved', flagged:false, at:'May 16' },
-        { id:uid('dp'), sessionId:'s11', type:'text', label:'Coping skill', value:'Box breathing introduced for acute stress moments.', source:'manual', status:'approved', flagged:false, at:'May 16' },
-        { id:uid('dp'), sessionId:null, type:'text', label:'Support network', value:'Roommate Mia is supportive but unaware of treatment.', source:'manual', status:'approved', flagged:false, at:'May 9' },
+        { id:uid('dp'), sessionId:'s12', prompt:'How has your sleep been over the past two weeks?', answer:'Falling asleep past 1:00 most nights; onset drifting to 23:30–01:30.', referenceDate:'Past 2 weeks', collectedAt:'May 23', source:'extracted', status:'pending' },
+        { id:uid('dp'), sessionId:'s12', prompt:'When did the sleep difficulties first begin?', answer:'Traces back to a 2014 deployment; symptoms worsened after discharge.', referenceDate:'2014', collectedAt:'May 23', source:'extracted', status:'pending' },
+        { id:uid('dp'), sessionId:'s12', prompt:'How would you describe your mood, and any thoughts of harming yourself?', answer:'Mood "flat, not dark." Denies suicidal ideation.', referenceDate:'This week', collectedAt:'May 23', source:'extracted', status:'approved' },
+        { id:uid('dp'), sessionId:'s12', prompt:'Tell me about a relationship that feels supportive.', answer:'Living with Mia since 2022 — describes her as a steadying presence.', referenceDate:'Since 2022', collectedAt:'May 9', source:'manual', status:'approved' },
+        { id:uid('dp'), sessionId:'s11', prompt:'What\'s driving the late bedtimes right now?', answer:'Quarterly deadline crunch at work.', referenceDate:'This month', collectedAt:'May 16', source:'extracted', status:'approved' },
+        { id:uid('dp'), sessionId:'s11', prompt:'What coping skill did we introduce for acute stress?', answer:'Box breathing for acute stress moments.', referenceDate:'May 16', collectedAt:'May 16', source:'manual', status:'approved' },
+        { id:uid('dp'), sessionId:null, prompt:'Who is in your support network?', answer:'Roommate Mia is supportive but unaware of treatment.', referenceDate:'Since 2022', collectedAt:'May 9', source:'manual', status:'approved' },
       ],
       // Activity feed (clinician web). Newest first.
       activity: [
