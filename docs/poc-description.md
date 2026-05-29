@@ -150,6 +150,7 @@ note that if there is a hard esclation flow in progress (meaning the patient app
 
 ![Clinician Mobile — Patient Profile (Alerts)](./images/clinician-mobile-patient-profile-alerts.png)
 ![Clinician Mobile — Patient Profile (App locked)](./images/clinician-mobile-patient-profile-app-locked.png)
+![Clinician Mobile — Patient profile (locked + unlock)](./images/clinician-mobile-patient-profile-locked-unlock.png)
 
 ### Push notifications
 Triggers for the MVP:
@@ -303,11 +304,15 @@ This modal is opened directly from the note screen, and allows the clinician to 
 the modal contains a button at the bottom for adding data points manually.
 You can also access this modal from the session summary screen directly.
 
+![Clinician Web — Extracted Data Points modal](./images/clinician-web-extracted-data-points-modal.png)
+
 ### Adding Data Points Modal
 
 Clinician can add data points (context about the patient). In the MVP these are limited to text.
 You csn access this modal directly through any session summary page, and 
 This modal is also accessible directly from the patient profile (see details below for exact placement)
+
+![Clinician Web — Add Data Point modal](./images/clinician-web-add-data-point-modal.png)
 
 
 ### Assessment screen
@@ -358,7 +363,7 @@ Page layout — two panes:
 
 **editing** is also possible by clicking the dedicated edit button on each prescription, or the "edit" button in the suggestion card.
 
-![Clinician Web — Treatment Plan Builder](./images/clinician-web-treatment-plan-builder.png)
+![Clinician Web — Goals builder](./images/clinician-web-treatment-plan-builder.png)
 ![Clinician Web — Add prescription (pick type)](./images/clinician-web-add-prescription-pick-type.png)
 ![Clinician Web — Add prescription (Sleep selected)](./images/clinician-web-add-prescription-sleep-selected.png)
 ![Clinician Web — Edit prescription (Sleep)](./images/clinician-web-edit-prescription-sleep.png)
@@ -372,6 +377,8 @@ Page layout — two panes:
 **Left: prescriptions side** — the treatment plan being defined. It is made of pages, you can flip horizontally between them - left and right (with a page indicator at bottom), each with 4 categories. each category is a free text box where the clinician can write the treatment plan objective for that category.
 
 **suggestion engine** simillar to the goal builder.
+
+![Clinician Web — Whole Life Plan builder](./images/clinician-web-whole-life-plan-builder.png)
 
 ### Compliance & progress view
 Patient's compliance score over time.
@@ -392,12 +399,8 @@ Tapping an incomplete stage jumps into that editor (or for the data points, open
 Default view: notes + treatment plan + goals on the left, raw data (transcript + audio if available) + data points related to this session (approved or manually added, and show a pill here to go to the data points approval modal if there are pending data points. clicking it will open the modal where you can approve data points that were extracted from the notes this session. also show a button here to manually add data points - this will open the add data point modal, even though the approval modal also has the "add manually" button) + assessment on the right. The raw data isn't directly shown, but clicking on them opens/downloads.
 Timeline strip at the bottom for jumping between sessions, plus **Next / Previous session** buttons. Pressing **Next** on the most recent session opens the upload screen.
 
-![Clinician Web — Session summary (raw next-up)](./images/clinician-web-session-summary-raw-next-up.png)
-![Clinician Web — Session summary (note next-up)](./images/clinician-web-session-summary-note-next-up.png)
-![Clinician Web — Session summary (assessment next-up)](./images/clinician-web-session-summary-assessment-next-up.png)
-![Clinician Web — Session summary (plan next-up)](./images/clinician-web-session-summary-plan-next-up.png)
-![Clinician Web — Session summary (all stages complete)](./images/clinician-web-session-summary-all-complete.png)
-![Clinician Web — Session summary (Export to EMR menu)](./images/clinician-web-session-summary-export-to-emr-menu.png)
+![Clinician Web — Session summary (data points next-up)](./images/clinician-web-session-summary-data-points-next-up.png)
+![Clinician Web — Session summary (all stages complete · Export to EMR)](./images/clinician-web-session-summary-all-complete.png)
 
 There is a button to export to EMR. it opens a menu with two options: 1. export plain text (for the clinician to copy and paste into an EMR) 2. send to EMR (via the integration, if it is connected.). buttons are shown but not clickable, as EMR integration is not implemented in the MVP.
 
@@ -458,6 +461,8 @@ Access to patient data is strictly limited to authorized personnel on a need-to-
 ### Treatment Plan (Whole life plan) view
 
 A card for each category, populated with the relevant objective as defined by the clinician. scrollable to see all cards.
+
+![Patient Mobile — Whole Life Plan view](./images/patient-mobile-whole-life-plan.png)
 
 ### Settings: Integrations
 Many more integrations than the clinician sees: wearables, health trackers, calendars, journals, etc.
@@ -578,7 +583,7 @@ The trigger is shown explicitly so the patient knows when the action applies —
 
 (future: patient annotations / questions on a specific prescription that get surfaced to the clinician — see Future / Post-MVP)
 
-![Patient Mobile — Treatment Plan](./images/patient-mobile-treatment-plan.png)
+![Patient Mobile — Goal View](./images/patient-mobile-treatment-plan.png)
 
 ### Data sharing
 Settings page with a **master switch** for sharing.
